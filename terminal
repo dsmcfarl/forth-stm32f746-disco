@@ -1,0 +1,2 @@
+#!/bin/sh
+e4thcom -t mecrisp-st -b B115200
