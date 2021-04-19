@@ -49,10 +49,3 @@
 : bfb. ( offset width addr -- )		\ print value from bitfield in binary
   base @ >R hex bf. R> base !
 ;
-
-\ TODO: sandbox, remove or move elsewhere
-: hse-off RCC_CR_HSEON bfc! ;
-: hse-on RCC_CR_HSEON bfs! ;
-: reg. ( addr -- ) @ . ;				\ print value stored at register address
-: regh. ( addr -- ) base @ >R hex reg. R> base ! ;	\ print value stored at register address in hex
-: plln! ( %bbbbbbbbb -- ) RCC_PLLCFGR_PLLN bf! ;
