@@ -27,24 +27,26 @@ Build generated code:
   make
 
 ## gen-cmsis
-gen-cmsis is a python3 script that parses the STM32F746.svd file and generates
-memmap.fs and bitfields.fs. The goal of it is to be simple and make the
-generated code as non-opinionated as possible about how it is to be used. The
-generated code should just provide the raw data about the registers and
-bitfields, then the code in common.fs can be tailored as desired without
-regenerating any code.
+gen-cmsis is a python3 script inspired by Terry Porter's svd2forth. It parses
+the STM32F7x6.svd file and generates memmap.fs and bitfields.fs.
 
-I think it should still be efficent in use as long as the words that manipulate
-the bitfield triplets are and convert them to masks and addresses as required
-are defined as foldable (maybe inline??). I'm new to all of this so this may
-prove to be wrong.
+These files provide constants for register addresses and words for each bitfield
+within those registers. gen-cmsis only generates code for registers listed in
+registers.txt. The bitfield words are very simple and just put a triplet of
+bitfield bit offset, bit width, and register address on the stack.  Words
+defined in common.fs are used to manipulate the bitfields based on these
+triplets.
 
-These files provide constants for register addresses
-and words for each bitfield within those registers. It only generates code for
-registers listed in registers.txt. The bitfield words are very simple and just
-put a triplet of: bitfield bit offset, bit width, and register address; on the
-stack.  Words defined in common.fs are used then to to manipulate the bitfields
-based on these triplets.
+I think this strategy should be efficent in use as long as the words that
+manipulate the bitfield triplets and convert them to masks and addresses, etc.
+as required are defined as foldable (maybe inline??). I'm new to all of this so
+this may prove to be wrong.
+
+The goal of gen-cmsis is to be simple and make the generated code as
+non-opinionated as possible about how it is to be used. The generated code
+should just provide the raw data about the registers and bitfields, then the
+code in common.fs can be tailored as desired to actually manipulate the
+bitfields.
 
 To add more generated registers, just add them to registers.txt and run make
 again.
@@ -56,11 +58,15 @@ installation to work.
 
 ## Example Usage
 
-  \ show current value of the RCC_PLLCFGR_PLLN bitfield:
+  \ print current value of the RCC_PLLCFGR_PLLN bitfield:
   RCC_PLLCFGR_PLLN bf. 192  ok.
   \ set RCC_PLLCFGR_PLLN bitfield to 216:
    #216 RCC_PLLCFGR_PLLN bf!  ok.
-  \ show the updated value:
-  RCC_PLLCFGR_PLLN bf. 216  ok.
+  \ fetch the current value:
+  RCC_PLLCFGR_PLLN bf@  ok.
+  \ set all bits:
+  RCC_PLLCFGR_PLLN bfs!  ok.
+  \ clear all bits:
+  RCC_PLLCFGR_PLLN bfc!  ok.
 
 There are other variations available. See common.fs for details.
