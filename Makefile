@@ -2,7 +2,7 @@
 
 default: memmap.fs bitfields.fs
 
-memmap.fs bitfields.fs:
+memmap.fs bitfields.fs: registers.txt
 	./gen-cmsis
 
 clean:
