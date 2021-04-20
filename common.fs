@@ -49,3 +49,7 @@
 : bfb. ( offset width addr -- )		\ print value from bitfield in binary
   base @ >R hex bf. R> base !
 ;
+
+: h.
+  base @ >R hex . R> base !
+;
