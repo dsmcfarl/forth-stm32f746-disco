@@ -2,8 +2,8 @@
 #require clock.fs
 #require systick.fs
 #require debug.fs
-sys-clk-cfg
+cfg-sysclk
 mco1-cfg
 systick-cfg
 ' systick-handler irq-systick !    \ This 'hooks' the systick-handler word (above) to the systick irq
-systick-int-enable
+systick-interrupt-enable

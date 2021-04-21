@@ -7,108 +7,116 @@ HSE_CLK_HZ #1000000 / constant PLLM	\ division factor for main PLLs input clock
 %00 constant PLLP2			\ main PLL division factor for main system clock
 
 : hsi-on ( -- ) RCC_CR_HSION bfs! ;
-: hsi-wait-rdy ( -- ) begin RCC_CR_HSIRDY bf@ until ;
-: sys-clk-hsi-switch ( -- ) RCC_CFGR_SW0 bfc! RCC_CFGR_SW1 bfc! ;
-: sys-clk-hsi-set ( -- )
-  hsi-on
-  hsi-wait-rdy
-  sys-clk-hsi-switch
-;
+: wait-hsi-rdy ( -- ) begin RCC_CR_HSIRDY bf@ until ;
+: set-sysclk-src-to-hsi ( -- ) RCC_CFGR_SW0 bfc! RCC_CFGR_SW1 bfc! ;
 
 : hse-off ( -- ) RCC_CR_HSEON bfc! ;
 : hse-on ( -- ) RCC_CR_HSEON bfs! ;
-: hse-byp-on ( -- ) RCC_CR_HSEBYP bfs! ;
-: hse-ext-osc-set ( -- )
-  hse-off
-  hse-byp-on
-  hse-on
-;
+: bypass-hse-osc ( -- ) RCC_CR_HSEBYP bfs! ;
 
 : pll-off ( -- ) RCC_CR_PLLON bfc! ;
 : pll-on ( -- ) RCC_CR_PLLON bfs! ;
-: pll-src-hse-set ( -- ) RCC_PLLCFGR_PLLSRC bfs! ;
+: set-pll-src-to-hse ( -- ) RCC_PLLCFGR_PLLSRC bfs! ;
 : pllm! ( %bbbbbb -- ) RCC_PLLCFGR_PLLM bf! ;
 : plln! ( %bbbbbbbbb -- ) RCC_PLLCFGR_PLLN bf! ;
 : pllp! ( %bb -- ) RCC_PLLCFGR_PLLP bf! ;
-: hse-wait-rdy ( -- ) begin RCC_CR_HSERDY bf@ until ;
-: pll-cfg ( -- )
+: wait-hse-rdy ( -- ) begin RCC_CR_HSERDY bf@ until ;
+: cfg-pll ( -- )
   pll-off
-  pll-src-hse-set
+  set-pll-src-to-hse
   PLLM pllm! PLLN plln! PLLP2 pllp!
-  hse-wait-rdy
+  wait-hse-rdy
   pll-on
 ; 
 
-: regulator-scale-mode-1-set ( -- ) %11 PWR_CR1_VOS bf! ;
-: pwr-clock-enable ( -- ) RCC_APB1ENR_PWREN bfs! ;
-: over-drive-enable ( -- ) PWR_CR1_ODEN bfs! ;
-: over-drive-wait-rdy ( -- ) begin PWR_CSR1_ODRDY bf@ until ;
-: over-drive-switching-enable ( -- ) PWR_CR1_ODSWEN bfs! ;
-: over-drive-switching-wait-ready ( -- ) begin PWR_CSR1_ODSWRDY bf@ until ;
-: regulator-cfg ( -- )			\ For 216MHz need scale mode 1 and over-drive enabled (ref: RM0385 Rev 8 p78).
-  regulator-scale-mode-1-set
-  pwr-clock-enable
-  over-drive-enable
-  over-drive-wait-rdy
-  over-drive-switching-enable
-  over-drive-switching-wait-ready
+%11 constant SCALE_1
+: reg-mode! ( %bb -- ) PWR_CR1_VOS bf! ;
+: enable-pwr-clock ( -- ) RCC_APB1ENR_PWREN bfs! ;
+: enable-over-drive ( -- ) PWR_CR1_ODEN bfs! ;
+: wait-over-drive-rdy ( -- ) begin PWR_CSR1_ODRDY bf@ until ;
+: enable-over-drive-switching ( -- ) PWR_CR1_ODSWEN bfs! ;
+: wait-over-drive-switching-ready ( -- ) begin PWR_CSR1_ODSWRDY bf@ until ;
+: cfg-reg ( -- )			\ For 216MHz need scale mode 1 and over-drive enabled (ref: RM0385 Rev 8 p78).
+  SCALE_1 reg-mode!
+  enable-pwr-clock
+  enable-over-drive
+  wait-over-drive-rdy
+  enable-over-drive-switching
+  wait-over-drive-switching-ready
 ;
 
-: flash-prefetch-enable ( -- ) FLASH_ACR_PRFTEN bfs! ;
+: enable-flash-prefetch ( -- ) FLASH_ACR_PRFTEN bfs! ;
 : flash-latency-wait-states! ( u -- ) FLASH_ACR_LATENCY bf! ;
-: art-cache-disable ( -- ) FLASH_ACR_ARTEN bfc! ;
-: art-cache-enable ( -- ) FLASH_ACR_ARTEN bfs! ;
-: art-cache-reset ( -- ) FLASH_ACR_ARTRST bfs! ;
-: art-cache-unreset ( -- ) FLASH_ACR_ARTRST bfc! ;
-: flash-cfg ( -- )
-  flash-prefetch-enable
+: disable-art-cache ( -- ) FLASH_ACR_ARTEN bfc! ;
+: enable-art-cache  ( -- ) FLASH_ACR_ARTEN bfs! ;
+: reset-art-cache  ( -- ) FLASH_ACR_ARTRST bfs! ;
+: unreset-art-cache  ( -- ) FLASH_ACR_ARTRST bfc! ;
+: cfg-flash ( -- )
+  enable-flash-prefetch
   #6 flash-latency-wait-states!
-  art-cache-disable
-  art-cache-reset
-  art-cache-unreset
-  art-cache-enable
+  disable-art-cache
+  reset-art-cache
+  unreset-art-cache
+  enable-art-cache
 ;
 
-\ cfgure bus pre-scalars
-: bus-cfg ( -- )
-  RCC_CFGR_HPRE bfc!			\ set AHB clock to system clock
-  $5 RCC_CFGR_PPRE1 bf!		\ set APB1 low speed clock to system clock/4
-  $4 RCC_CFGR_PPRE2 bf!		\ set APB2 high speed clock to system clock/2
+%0000 constant HPRE/1			\ sysclk divided by 1
+%101 constant PPRE1/4			\ sysclk divided by 4
+%100 constant PPRE2/2			\ sysclk divided by 2
+: ahb-pre-scalar! ( %bbbb -- ) RCC_CFGR_HPRE bf! ;
+: apb1-low-speed-pre-scalar! ( %bbb -- ) RCC_CFGR_PPRE1 bf! ;
+: apb2-high-speed-pre-scalar! ( %bbb -- ) RCC_CFGR_PPRE2 bf! ;
+: cfg-bus-pre-scalars ( -- )
+  HPRE/1 ahb-pre-scalar!
+  PPRE1/4 apb1-low-speed-pre-scalar!
+  PPRE2/2 apb2-high-speed-pre-scalar!
 ;
 
-\ cfgure system clock to use PLL clock
-: sys-clk-pll ( -- )
-  begin RCC_CR_PLLRDY bf@ until		\ wait until PLL is ready
-  RCC_CFGR_SW0 bfc!			\ switch to PLL clock
-  RCC_CFGR_SW1 bfs!
+: wait-pll-rdy ( -- ) begin RCC_CR_PLLRDY bf@ until ;
+: set-sysclk-src-to-pll ( -- ) RCC_CFGR_SW0 bfc! RCC_CFGR_SW1 bfs! ;
+
+%10 constant HSI
+: usart1-clk-src! ( %bb -- ) RCC_DKCFGR2_USART1SEL bf! ;
+: baud-rate-for-16x-oversampling ( -- u ) #115200 HSI_CLK_HZ over 2/ + swap / ;
+: cfg-usart1 ( -- )
+  HSI usart1-clk-src!
+  baud-rate-for-16x-oversampling USART1_BRR !
 ;
 
-: usart1-cfg ( -- )
-  #2 RCC_DKCFGR2_USART1SEL bf!
-  #115200 HSI_CLK_HZ over 2/ + swap /	\ calculate baudrate for 16 times oversampling
-  USART1_BRR !
-;
-
-\ cfgure PLLSAI (used by LCD-TFT controller) (assumes PLLM set to 1MHz)
-: pllsai-cfg ( -- )
-  RCC_APB2ENR_LTDCEN bfs!		\ enable the LCD-TFT controller clock
-  RCC_CR_PLLSAION bfc!			\ turn off PLLSAI
-  #192 RCC_PLLSAICFGR_PLLSAIN bf! \ PLLSAI mult factor to set PLLSAIN to 192 MHz
-  #5 RCC_PLLSAICFGR_PLLSAIR bf!	\ PLLSAI div factor to set PLLSAIR to 38.4 MHz 
-  %01 RCC_DKCFGR1_PLLSAIDIVR bf!	\ div factor to set LTDC clock to 9.6 MHz
-  RCC_CR_PLLSAION bfs!			\ turn on PLLSAI
-  begin RCC_CR_PLLSAIRDY bf@ until		\ wait for PLLSAI to be ready
+#192 constant PLLSAIN
+#5 constant PLLSAIR
+%01 constant PLLSAIDIVR\4		\ divide by 4
+: enable-lcd-tft-controller-clock ( -- ) RCC_APB2ENR_LTDCEN bfs! ;
+: pllsai-off ( -- ) RCC_CR_PLLSAION bfc! ;
+: pllsai-on ( -- ) RCC_CR_PLLSAION bfs! ;
+: wait-pllsai-rdy ( -- ) begin RCC_CR_PLLSAIRDY bf@ until ;
+: pllsain! ( %bbbbbbbbb -- ) RCC_PLLSAICFGR_PLLSAIN bf! ;
+: pllsair! ( %bbb -- ) RCC_PLLSAICFGR_PLLSAIR bf! ;
+: pllsaidivr! ( %bb -- ) RCC_DKCFGR1_PLLSAIDIVR bf! ;
+: cfg-pllsai ( -- )
+  enable-lcd-tft-controller-clock
+  pllsai-off
+  \ 192 / 5 / 4 = 9.6 MHz
+  PLLSAIN pllsain!
+  PLLSAIR pllsair!
+  PLLSAIDIVR\4 pllsaidivr!
+  pllsai-on
+  wait-pllsai-rdy
 ;  
 
-\ setup system clock
-: sys-clk-cfg  ( -- )
-  sys-clk-hsi-set
-  hse-ext-osc-set 
-  pll-cfg
-  regulator-cfg
-  flash-cfg
-  bus-cfg
-  sys-clk-pll
-  usart1-cfg
-  pllsai-cfg
+: cfg-sysclk  ( -- )
+  hsi-on
+  wait-hsi-rdy
+  set-sysclk-src-to-hsi
+  hse-off
+  bypass-hse-osc
+  hse-on
+  cfg-pll
+  cfg-reg
+  cfg-flash
+  cfg-bus-pre-scalars
+  wait-pll-rdy
+  set-sysclk-src-to-pll
+  cfg-usart1
+  cfg-pllsai
 ;
