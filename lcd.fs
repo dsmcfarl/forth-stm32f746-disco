@@ -56,10 +56,9 @@
 RK043FN48H_WIDTH  constant MAX_WIDTH     \ maximum width
 RK043FN48H_HEIGHT constant MAX_HEIGHT    \ maximum height
 
-\ TODO: refactor
 : lcd-back-color! ( r g b -- )           \ lcd background color
-  $ff and swap $ff and #8 lshift or
-  swap $ff and #16 lshift or LTDC_BCCR !
+ $ff and swap $ff and #8 lshift or
+ swap $ff and #16 lshift LTDC_BCCR_BC bf!
 ;
 : lcd-display-init ( -- )                \ set display configuration
   LTDC_GCR_LTDCEN bfs!
@@ -78,7 +77,7 @@ RK043FN48H_HEIGHT constant MAX_HEIGHT    \ maximum height
    RK043FN48H_VBP + RK043FN48H_VFP + 1- LTDC_TWCR_TOTALH bf!
 
    0 0 0 lcd-back-color!                 \ black back ground
-   1 LTDC_GCR !                          \ LTDCEN LCD-TFT controller enable
+   LTDC_GCR_LTDCEN bfs!                          \ LTDCEN LCD-TFT controller enable
 ;
 
 
