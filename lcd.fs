@@ -43,6 +43,44 @@
   OUTPUT GPIOK_MODER_MODER3 bf!
 ;
 
+\ ***** LCD Timings *********************
+#480 constant RK043FN48H_WIDTH
+#272 constant RK043FN48H_HEIGHT
+#41  constant RK043FN48H_HSYNC           \ Horizontal synchronization
+#13  constant RK043FN48H_HBP             \ Horizontal back porch
+#32  constant RK043FN48H_HFP             \ Horizontal front porch
+#10  constant RK043FN48H_VSYNC           \ Vertical synchronization
+#2   constant RK043FN48H_VBP             \ Vertical back porch
+#2   constant RK043FN48H_VFP             \ Vertical front porch
+
+RK043FN48H_WIDTH  constant MAX_WIDTH     \ maximum width
+RK043FN48H_HEIGHT constant MAX_HEIGHT    \ maximum height
+
+\ TODO: refactor
+: lcd-back-color! ( r g b -- )           \ lcd background color
+  $ff and swap $ff and #8 lshift or
+  swap $ff and #16 lshift or LTDC_BCCR !
+;
+: lcd-display-init ( -- )                \ set display configuration
+  LTDC_GCR_LTDCEN bfs!
+   RK043FN48H_HSYNC 1- LTDC_SSCR_HSW bf!
+   RK043FN48H_VSYNC 1- LTDC_SSCR_VSH bf!
+
+   RK043FN48H_HSYNC RK043FN48H_HBP + 1- LTDC_BPCR_AHBP bf!
+   RK043FN48H_VSYNC RK043FN48H_VBP + 1- LTDC_BPCR_AHBP bf!
+
+   RK043FN48H_WIDTH  RK043FN48H_HSYNC + RK043FN48H_HBP + 1- LTDC_AWCR_AAV bf!
+   RK043FN48H_HEIGHT RK043FN48H_VSYNC + RK043FN48H_VBP + 1- LTDC_AWCR_AAH bf!
+
+   RK043FN48H_WIDTH RK043FN48H_HSYNC +
+   RK043FN48H_HBP + RK043FN48H_HFP + 1- LTDC_TWCR_TOTALW bf!
+   RK043FN48H_HEIGHT RK043FN48H_VSYNC +
+   RK043FN48H_VBP + RK043FN48H_VFP + 1- LTDC_TWCR_TOTALH bf!
+
+   0 0 0 lcd-back-color!                 \ black back ground
+   1 LTDC_GCR !                          \ LTDCEN LCD-TFT controller enable
+;
+
 
 \ ***************************************** old ******************************************
 : u.8 ( n -- )                           \ unsigned output 8 digits
@@ -97,10 +135,6 @@ $24         constant GPIO_AFRH
 : bsrr-off  ( pin -- v )                 \ gpio_bsrr mask pin off
    pin# #16 + 1 swap lshift 1-foldable ;
    
-: rcc-gpio-clk-on  ( n -- )              \ enable single gpio port clock 0:GPIOA..10:GPIOK
-  1 swap lshift RCC_AHB1ENR bis! ;
-: rcc-ltdc-clk-on ( -- )                 \ turn on lcd controller clock
-   #1 #26 lshift RCC_APB2ENR bis! ;
 
 \ ***** lcd definitions *****************
 $40016800        constant LTDC              \ LTDC base
@@ -276,18 +310,6 @@ PH7  constant LCD_SCL                    \ I2C3_SCL GPIO-AF4 touch i2c
 PH8  constant LCD_SDA                    \ I2C3_SCL GPIO-AF4 touch i2c
 PK3  constant LCD_BL                     \ lcd back light port
 
-\ ***** LCD Timings *********************
-#480 constant RK043FN48H_WIDTH
-#272 constant RK043FN48H_HEIGHT
-#41  constant RK043FN48H_HSYNC           \ Horizontal synchronization
-#13  constant RK043FN48H_HBP             \ Horizontal back porch
-#32  constant RK043FN48H_HFP             \ Horizontal front porch
-#10  constant RK043FN48H_VSYNC           \ Vertical synchronization
-#2   constant RK043FN48H_VBP             \ Vertical back porch
-#2   constant RK043FN48H_VFP             \ Vertical front porch
-
-RK043FN48H_WIDTH  constant MAX_WIDTH     \ maximum width
-RK043FN48H_HEIGHT constant MAX_HEIGHT    \ maximum height
 \ ***** lcd functions *******************
 : lcd-backlight-on  ( -- )               \ lcd back light on
    LCD_BL bsrr-on LCD_BL port-base GPIO_BSRR + ! ;
@@ -297,31 +319,8 @@ RK043FN48H_HEIGHT constant MAX_HEIGHT    \ maximum height
    LCD_DISP bsrr-on LCD_DISP port-base GPIO_BSRR + ! ;
 : lcd-disp-off  ( -- )                   \ disable display
    LCD_DISP bsrr-off LCD_DISP port-base GPIO_BSRR + ! ;
-: lcd-back-color! ( r g b -- )           \ lcd background color
-   $ff and swap $ff and #8 lshift or
-   swap $ff and #16 lshift or LTDC_BCCR ! ;
 : lcd-reg-update ( -- )                  \ update register settings
    1 LTDC_SRCR bis! ;
-: lcd-display-init ( -- )                \ set display configuration
-   LTDC_GCR_LTDCEN LTDC_GCR bis!
-   RK043FN48H_HSYNC 1- #16 lshift
-   RK043FN48H_VSYNC 1- or LTDC_SSCR !
-
-   RK043FN48H_HSYNC RK043FN48H_HBP + 1- #16 lshift
-   RK043FN48H_VSYNC RK043FN48H_VBP + 1- or LTDC_BPCR !
-
-   RK043FN48H_WIDTH  RK043FN48H_HSYNC + RK043FN48H_HBP + 1- #16 lshift
-   RK043FN48H_HEIGHT RK043FN48H_VSYNC + RK043FN48H_VBP + 1- or LTDC_AWCR !
-
-   RK043FN48H_WIDTH RK043FN48H_HSYNC +
-   RK043FN48H_HBP + RK043FN48H_HFP + 1- #16 lshift
-   RK043FN48H_HEIGHT RK043FN48H_VSYNC +
-   RK043FN48H_VBP + RK043FN48H_VFP + 1- or LTDC_TWCR !
-
-   0 0 0 lcd-back-color!                 \ black back ground
-   1 LTDC_GCR !                          \ LTDCEN LCD-TFT controller enable
-   
-   lcd-backlight-init lcd-backlight-on ;
 \ ***** lcd layer functions *************
 0   constant layer1
 $80 constant layer2
