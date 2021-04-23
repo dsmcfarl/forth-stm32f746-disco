@@ -38,7 +38,10 @@
   OUTPUT GPIOI_MODER_MODER12 bf!
 ;
 
-
+: lcd-backlight-init  ( -- )             \ initialize lcd backlight port
+  enable-gpiok-clock
+  OUTPUT GPIOK_MODER_MODER3 bf!
+;
 
 
 \ ***************************************** old ******************************************
@@ -286,11 +289,6 @@ PK3  constant LCD_BL                     \ lcd back light port
 RK043FN48H_WIDTH  constant MAX_WIDTH     \ maximum width
 RK043FN48H_HEIGHT constant MAX_HEIGHT    \ maximum height
 \ ***** lcd functions *******************
-: lcd-backlight-init  ( -- )             \ initialize lcd backlight port
-   LCD_BL port# rcc-gpio-clk-on          \ turn on gpio clock
-   1 LCD_BL mode-shift
-   LCD_BL mode-mask
-   LCD_BL port-base set-mask! ;
 : lcd-backlight-on  ( -- )               \ lcd back light on
    LCD_BL bsrr-on LCD_BL port-base GPIO_BSRR + ! ;
 : lcd-backlight-off  ( -- )              \ lcd back light on
