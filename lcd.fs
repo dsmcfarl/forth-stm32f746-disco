@@ -40,7 +40,7 @@
 
 : lcd-backlight-init  ( -- )             \ initialize lcd backlight port
   enable-gpiok-clock
-  OUTPUT GPIOK_MODER_MODER3 bf!
+  OUTPUT GPIOK_MODER_MODER3 bf!		\ LCD_BL
 ;
 
 \ ***** LCD Timings *********************
@@ -79,6 +79,9 @@ RK043FN48H_HEIGHT constant MAX_HEIGHT    \ maximum height
    0 0 0 lcd-back-color!                 \ black back ground
    LTDC_GCR_LTDCEN bfs!                          \ LTDCEN LCD-TFT controller enable
 ;
+: lcd-reg-update ( -- ) LTDC_SRCR_IMR bfs! ;
+: lcd-backlight-on  ( -- ) GPIOK_BSRR_BS3 bfs! ;
+: lcd-disp-on  ( -- ) GPIOI_BSRR_BS12 bfs! ;
 
 
 \ ***************************************** old ******************************************
@@ -309,17 +312,6 @@ PH7  constant LCD_SCL                    \ I2C3_SCL GPIO-AF4 touch i2c
 PH8  constant LCD_SDA                    \ I2C3_SCL GPIO-AF4 touch i2c
 PK3  constant LCD_BL                     \ lcd back light port
 
-\ ***** lcd functions *******************
-: lcd-backlight-on  ( -- )               \ lcd back light on
-   LCD_BL bsrr-on LCD_BL port-base GPIO_BSRR + ! ;
-: lcd-backlight-off  ( -- )              \ lcd back light on
-   LCD_BL bsrr-off LCD_BL port-base GPIO_BSRR + ! ;
-: lcd-disp-on  ( -- )                    \ enable display
-   LCD_DISP bsrr-on LCD_DISP port-base GPIO_BSRR + ! ;
-: lcd-disp-off  ( -- )                   \ disable display
-   LCD_DISP bsrr-off LCD_DISP port-base GPIO_BSRR + ! ;
-: lcd-reg-update ( -- )                  \ update register settings
-   1 LTDC_SRCR bis! ;
 \ ***** lcd layer functions *************
 0   constant layer1
 $80 constant layer2
