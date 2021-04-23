@@ -1,21 +1,47 @@
-\ ***** utility functions ***************
-\ ***** bitfield utility functions ******
-: cnt0   ( m -- b )                      \ count trailing zeros with hw support
-   dup negate and 1-
-   clz negate #32 + 1-foldable ;
-: bits@  ( m adr -- b )                  \ get bitfield at masked position e.g $1234 v ! $f0 v bits@ $3 = . (-1)
-   @ over and swap cnt0 rshift ;
-: bits!  ( n m adr -- )                  \ set bitfield value n to value at masked position
-   >R dup >R cnt0 lshift                 \ shift value to proper position
-   R@ and                                \ mask out unrelated bits
-   R> not R@ @ and                       \ invert bitmask and maskout new bits in current value
-   or r> ! ;                             \ apply value and store back
-                                         \ example :
-                                         \   RCC_PLLCFGR.PLLN = 400 -> #400 $1FF #6 lshift RCC_PLLCFGR bits!
-                                         \ PLLN: bit[14:6] -> mask :$1FF << 6 = $7FC0
-                                         \ #400 $7FC0 RCC_PLLCFGR bits!
-                                         \ $1FF #6 lshift constant PLLN
-                                         \ #400 PLLN RCC_PLLCFGR bits!
+#require gpio.fs
+
+: lcd-gpio-init ( -- )
+  \ LCD_R0 thru 7
+  AF GPIOI_MODER_MODER15 bf! HIGH_SPD GPIOI_OSPEEDR_OSPEEDR15 bf! AF14 GPIOI_AFRH_AFRH15 bf!
+  AF GPIOJ_MODER_MODER0 bf! HIGH_SPD GPIOJ_OSPEEDR_OSPEEDR0 bf! AF14 GPIOJ_AFRL_AFRL0 bf!
+  AF GPIOJ_MODER_MODER1 bf! HIGH_SPD GPIOJ_OSPEEDR_OSPEEDR1 bf! AF14 GPIOJ_AFRL_AFRL1 bf!
+  AF GPIOJ_MODER_MODER2 bf! HIGH_SPD GPIOJ_OSPEEDR_OSPEEDR2 bf! AF14 GPIOJ_AFRL_AFRL2 bf!
+  AF GPIOJ_MODER_MODER3 bf! HIGH_SPD GPIOJ_OSPEEDR_OSPEEDR3 bf! AF14 GPIOJ_AFRL_AFRL3 bf!
+  AF GPIOJ_MODER_MODER4 bf! HIGH_SPD GPIOJ_OSPEEDR_OSPEEDR4 bf! AF14 GPIOJ_AFRL_AFRL4 bf!
+  AF GPIOJ_MODER_MODER5 bf! HIGH_SPD GPIOJ_OSPEEDR_OSPEEDR5 bf! AF14 GPIOJ_AFRL_AFRL5 bf!
+  AF GPIOJ_MODER_MODER6 bf! HIGH_SPD GPIOJ_OSPEEDR_OSPEEDR6 bf! AF14 GPIOJ_AFRL_AFRL6 bf!
+
+  \ LCD_G0 thru 7
+  AF GPIOJ_MODER_MODER7 bf! HIGH_SPD GPIOJ_OSPEEDR_OSPEEDR7 bf! AF14 GPIOJ_AFRL_AFRL7 bf!
+  AF GPIOJ_MODER_MODER8 bf! HIGH_SPD GPIOJ_OSPEEDR_OSPEEDR8 bf! AF14 GPIOJ_AFRH_AFRH8 bf!
+  AF GPIOJ_MODER_MODER9 bf! HIGH_SPD GPIOJ_OSPEEDR_OSPEEDR9 bf! AF14 GPIOJ_AFRH_AFRH9 bf!
+  AF GPIOJ_MODER_MODER10 bf! HIGH_SPD GPIOJ_OSPEEDR_OSPEEDR10 bf! AF14 GPIOJ_AFRH_AFRH10 bf!
+  AF GPIOJ_MODER_MODER11 bf! HIGH_SPD GPIOJ_OSPEEDR_OSPEEDR11 bf! AF14 GPIOJ_AFRH_AFRH11 bf!
+  AF GPIOK_MODER_MODER0 bf! HIGH_SPD GPIOK_OSPEEDR_OSPEEDR0 bf! AF14 GPIOK_AFRL_AFRL0 bf!
+  AF GPIOK_MODER_MODER1 bf! HIGH_SPD GPIOK_OSPEEDR_OSPEEDR1 bf! AF14 GPIOK_AFRL_AFRL1 bf!
+  AF GPIOK_MODER_MODER2 bf! HIGH_SPD GPIOK_OSPEEDR_OSPEEDR2 bf! AF14 GPIOK_AFRL_AFRL2 bf!
+
+  \ LCD_B0 thru 7
+  AF GPIOE_MODER_MODER4 bf! HIGH_SPD GPIOE_OSPEEDR_OSPEEDR4 bf! AF14 GPIOE_AFRL_AFRL4 bf!
+  AF GPIOJ_MODER_MODER13 bf! HIGH_SPD GPIOJ_OSPEEDR_OSPEEDR13 bf! AF14 GPIOJ_AFRH_AFRH13 bf!
+  AF GPIOJ_MODER_MODER14 bf! HIGH_SPD GPIOJ_OSPEEDR_OSPEEDR14 bf! AF14 GPIOJ_AFRH_AFRH14 bf!
+  AF GPIOJ_MODER_MODER15 bf! HIGH_SPD GPIOJ_OSPEEDR_OSPEEDR15 bf! AF14 GPIOJ_AFRH_AFRH15 bf!
+  AF GPIOG_MODER_MODER12 bf! HIGH_SPD GPIOG_OSPEEDR_OSPEEDR12 bf! AF14 GPIOG_AFRH_AFRH12 bf!
+  AF GPIOK_MODER_MODER4 bf! HIGH_SPD GPIOK_OSPEEDR_OSPEEDR4 bf! AF14 GPIOK_AFRL_AFRL4 bf!
+  AF GPIOK_MODER_MODER5 bf! HIGH_SPD GPIOK_OSPEEDR_OSPEEDR5 bf! AF14 GPIOK_AFRL_AFRL5 bf!
+  AF GPIOK_MODER_MODER6 bf! HIGH_SPD GPIOK_OSPEEDR_OSPEEDR6 bf! AF14 GPIOK_AFRL_AFRL6 bf!
+
+  AF GPIOK_MODER_MODER7 bf! HIGH_SPD GPIOK_OSPEEDR_OSPEEDR7 bf! AF14 GPIOK_AFRL_AFRL7 bf!	\ LCD_DE
+  AF GPIOI_MODER_MODER14 bf! HIGH_SPD GPIOI_OSPEEDR_OSPEEDR14 bf! AF14 GPIOI_AFRH_AFRH14 bf!	\ LCD_CLK
+  AF GPIOI_MODER_MODER10 bf! HIGH_SPD GPIOI_OSPEEDR_OSPEEDR10 bf! AF14 GPIOI_AFRH_AFRH10 bf!	\ LCD_HSYNC
+  AF GPIOI_MODER_MODER9 bf! HIGH_SPD GPIOI_OSPEEDR_OSPEEDR9 bf! AF14 GPIOI_AFRH_AFRH9 bf!	\ LCD_VSYNC
+  OUTPUT GPIOI_MODER_MODER12 bf!
+;
+
+
+
+
+\ ***************************************** old ******************************************
 : u.8 ( n -- )                           \ unsigned output 8 digits
    0 <# # # # # # # # # #> type ;
 : x.8 ( n -- )                           \ hex output 8 digits
@@ -67,24 +93,6 @@ $24         constant GPIO_AFRH
    pin# 1 swap lshift 1-foldable ;
 : bsrr-off  ( pin -- v )                 \ gpio_bsrr mask pin off
    pin# #16 + 1 swap lshift 1-foldable ;
-: af-mask  ( pin -- mask )               \ alternate function bitmask
-   $7 and #2 lshift $f swap lshift 1-foldable ;
-: af-reg  ( pin -- adr )                 \ alternate function register address for pin
-   dup $8 and 2/ swap
-   port-base GPIO_AFRL + + 1-foldable ;
-: af-shift ( af pin -- af )
-   pin# #2 lshift swap lshift 2-foldable ;
-: gpio-mode! ( mode pin -- )
-   tuck mode-shift swap dup
-   mode-mask swap port-base set-mask! ;
-: mode-af ( af pin -- )
-   #2 over gpio-mode!
-   dup af-mask swap af-reg bits! ;
-: speed-mode ( speed pin -- )            \ set speed mode 0:low speed 1:medium 2:fast 3:high speed
-   dup pin# 2* #3 swap lshift
-   swap port-base #8 + bits! ;
-: mode-af-fast ( af pin -- )
-   #2 over speed-mode mode-af ;
    
 : rcc-gpio-clk-on  ( n -- )              \ enable single gpio port clock 0:GPIOA..10:GPIOK
   1 swap lshift RCC_AHB1ENR bis! ;
@@ -287,19 +295,6 @@ RK043FN48H_HEIGHT constant MAX_HEIGHT    \ maximum height
    LCD_BL bsrr-on LCD_BL port-base GPIO_BSRR + ! ;
 : lcd-backlight-off  ( -- )              \ lcd back light on
    LCD_BL bsrr-off LCD_BL port-base GPIO_BSRR + ! ;
-: lcd-gpio-init ( -- )                   \ initialize all lcd gpio ports
-   #14 LCD_R0 MODE-AF-FAST  #14 LCD_R1 MODE-AF-FAST  #14 LCD_R2 MODE-AF-FAST  #14 LCD_R3 MODE-AF-FAST
-   #14 LCD_R4 MODE-AF-FAST  #14 LCD_R5 MODE-AF-FAST  #14 LCD_R6 MODE-AF-FAST  #14 LCD_R7 MODE-AF-FAST
-
-   #14 LCD_G0 MODE-AF-FAST  #14 LCD_G1 MODE-AF-FAST  #14 LCD_G2 MODE-AF-FAST  #14 LCD_G3 MODE-AF-FAST
-   #14 LCD_G4 MODE-AF-FAST  #14 LCD_G5 MODE-AF-FAST  #14 LCD_G6 MODE-AF-FAST  #14 LCD_G7 MODE-AF-FAST
-
-   #14 LCD_B0 MODE-AF-FAST  #14 LCD_B1 MODE-AF-FAST  #14 LCD_B2 MODE-AF-FAST  #14 LCD_B3 MODE-AF-FAST
-    #9 LCD_B4 MODE-AF-FAST  #14 LCD_B5 MODE-AF-FAST  #14 LCD_B6 MODE-AF-FAST  #14 LCD_B7 MODE-AF-FAST
-
-   #14 LCD_VSYNC MODE-AF-FAST  #14 LCD_HSYNC MODE-AF-FAST
-   #14 LCD_CLK MODE-AF-FAST    #14 LCD_DE    MODE-AF-FAST
-   01 LCD_DISP gpio-mode! ;
 : lcd-disp-on  ( -- )                    \ enable display
    LCD_DISP bsrr-on LCD_DISP port-base GPIO_BSRR + ! ;
 : lcd-disp-off  ( -- )                   \ disable display
@@ -437,9 +432,8 @@ L1-v-start       RK043FN48H_HEIGHT + 1- constant L1-v-end
    ;
 : lcd-init  ( -- )                       \ pll-input frequency must be 1 MHz
    lcd-backlight-init
-   lcd-display-init lcd-reg-update lcd-gpio-init lcd-disp-on ;
-: demo ( -- )
-   lcd-init lcd-layer1-init lcd-reg-update lcd-backlight-on ;
+   lcd-display-init lcd-reg-update lcd-gpio-init lcd-disp-on
+   lcd-layer1-init lcd-reg-update lcd-backlight-on ;
 : >token ( a -- a )                      \ retrieve token name address for cfa
    1- dup c@ 0= +                        \ skip the padding zero 
    #256 1 do 1- dup c@ i = if leave then loop ; \ backtrack to start of counted string
@@ -776,7 +770,7 @@ grid-space 6 * constant grid-h-length
    0 raster-pixel-x ! 0 raster-pixel-y ! 49 0
    do i test-pixel-coord-line loop ; 
 : circle-palette-test ( -- )             \ animated color cycling circles
-   demo 50 circle-test -1 palette-demo1 ;
+   lcd-init 50 circle-test -1 palette-demo1 ;
 \ circle-palette-test
 
 : bit-reverse-5..0 ( w - w ) \ reverse b0-b5
@@ -811,7 +805,7 @@ grid-space 6 * constant grid-h-length
                           0 constant black
                           
 : test-genchar                           \ test genchar
-   demo                                  \ init display
+   lcd-init                                  \ init display
    layer1 lcd-layer-color-map-8-8-4      \ colormap rgb 8-8-4
    black fill                            \ clear screen
    232 color! draw-raster-6x8            \ orange raster
