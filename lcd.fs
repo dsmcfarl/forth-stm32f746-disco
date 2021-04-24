@@ -104,6 +104,7 @@ lcd-fb1-size#  variable lcd-fb1-size         \ frame buffer 1 size
 : lcd-layer1-fb-adr!  ( a -- ) LTDC_L1CFBAR_CFBADD bf! ;
 : lcd-layer1-fb-adr@  ( a -- ) LTDC_L1CFBAR_CFBADD bf@ ;
 : lcd-layer1-fb-line-length! ( len -- ) dup LTDC_L1CFBLR_CFBP bf! lcd-reg-update $3 + LTDC_L1CFBLR_CFBLL bf! ;
+: lcd-layer1-num-lines! ( lines -- ) LTDC_L1CFBLNR_CFBLNBR bf! ;
 
 \ ***************************************** old ******************************************
 : u.8 ( n -- )                           \ unsigned output 8 digits
@@ -349,8 +350,6 @@ $10 constant LTDC_LxCR_CLUTEN                \ Color Look-Up Table Enable
    layer-base $9C + ! ;
 : lcd-layer-blend-cfg! ( bf1 bf2 layer -- )  \ set layer blending function
    layer-base $a0 + -rot swap 8 lshift or swap ! ;
-: lcd-layer-num-lines! ( lines layer -- )    \ set layer number of lines to buffer
-   layer-base $b4 + ! ;
 : lcd-layer-color-map ( c i l -- )           \ set layer color at map index
    layer-base $c4 +
    -rot $ff and #24 lshift                   \ shift index to pos [31..24]
@@ -405,7 +404,7 @@ L1-v-start       RK043FN48H_HEIGHT + 1- constant L1-v-end
    L8_FMT lcd-layer1-pixel-format!     \ 8 bit per pixel frame buffer format
    lcd-fb1 @ lcd-layer1-fb-adr!    \ set frame buffer address
    MAX_WIDTH lcd-layer1-fb-line-length!
-   MAX_HEIGHT layer1 lcd-layer-num-lines!
+   MAX_HEIGHT lcd-layer1-num-lines!
    layer1 fb-init-0-ff
    layer1 lcd-layer-color-map-8-8-4
    lcd-layer1-on
