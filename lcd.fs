@@ -79,6 +79,8 @@ RK043FN48H_HEIGHT constant MAX_HEIGHT    \ maximum height
    0 0 0 lcd-back-color!                 \ black back ground
    LTDC_GCR_LTDCEN bfs!                          \ LTDCEN LCD-TFT controller enable
 ;
+\ LTDC registers use shadow registers so if writing to more than one bitfield
+\ in separate ops, you have to do lcd-gre-update in between
 : lcd-reg-update ( -- ) LTDC_SRCR_IMR bfs! ;
 : lcd-backlight-on  ( -- ) GPIOK_BSRR_BS3 bfs! ;
 : lcd-disp-on  ( -- ) GPIOI_BSRR_BS12 bfs! ;
@@ -101,6 +103,7 @@ lcd-fb1-buffer variable lcd-fb1              \ frame buffer 1 pointer
 lcd-fb1-size#  variable lcd-fb1-size         \ frame buffer 1 size
 : lcd-layer1-fb-adr!  ( a -- ) LTDC_L1CFBAR_CFBADD bf! ;
 : lcd-layer1-fb-adr@  ( a -- ) LTDC_L1CFBAR_CFBADD bf@ ;
+: lcd-layer1-fb-line-length! ( len -- ) dup LTDC_L1CFBLR_CFBP bf! lcd-reg-update $3 + LTDC_L1CFBLR_CFBLL bf! ;
 
 \ ***************************************** old ******************************************
 : u.8 ( n -- )                           \ unsigned output 8 digits
@@ -346,10 +349,6 @@ $10 constant LTDC_LxCR_CLUTEN                \ Color Look-Up Table Enable
    layer-base $9C + ! ;
 : lcd-layer-blend-cfg! ( bf1 bf2 layer -- )  \ set layer blending function
    layer-base $a0 + -rot swap 8 lshift or swap ! ;
-: lcd-layer-fb-line-length! ( len layer -- ) \ set layer line length in byte
-   layer-base $B0 +
-   swap dup #16 lshift
-   swap 3 + or swap ! ;
 : lcd-layer-num-lines! ( lines layer -- )    \ set layer number of lines to buffer
    layer-base $b4 + ! ;
 : lcd-layer-color-map ( c i l -- )           \ set layer color at map index
@@ -405,7 +404,7 @@ L1-v-start       RK043FN48H_HEIGHT + 1- constant L1-v-end
    0 0 0 lcd-layer1-key-color!         \ key color black no used here
    L8_FMT lcd-layer1-pixel-format!     \ 8 bit per pixel frame buffer format
    lcd-fb1 @ lcd-layer1-fb-adr!    \ set frame buffer address
-   MAX_WIDTH layer1 lcd-layer-fb-line-length!
+   MAX_WIDTH lcd-layer1-fb-line-length!
    MAX_HEIGHT layer1 lcd-layer-num-lines!
    layer1 fb-init-0-ff
    layer1 lcd-layer-color-map-8-8-4
