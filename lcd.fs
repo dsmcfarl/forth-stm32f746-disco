@@ -122,6 +122,47 @@ lcd-fb1-size#  variable lcd-fb1-size         \ frame buffer 1 size
   loop
   drop
 ;
+: lcd-layer1-color-map ( c i -- )           \ set layer color at map index
+  \ must set whole register at once
+  #24 lshift or
+  LTDC_L1CLUTWR !
+;
+
+: rgb>color ( r g b -- c )               \ calc color c from r-g-b components
+  $ff and swap $ff and 8 lshift or swap $ff and #16 lshift or ;
+: lcd-layer-colormap-gray-scale ( layer -- ) \ grayscale colormap quick n dirty
+   #256 0 do
+     i i i rgb>color i lcd-layer1-color-map
+   loop
+;
+
+\ ref: https://en.wikipedia.org/wiki/List_of_software_palettes#8-8-4_levels_RGB
+\ These map an index to an 8 bit color, cylcling thru the colors
+\ to ensure every combination is covered over 256 values of i.
+: red-884 ( i -- c )                         \ calc red component for 8-8-4 palette
+   $e0 and #5 rshift
+   #255 * #3 + #7 /
+;
+: green-884 ( i -- c )                       \ green component for 8-8-4 palette
+   $1C and #2 rshift
+   #255 * #3 + #7 /
+;
+: blue-884 ( i -- c )                        \ blue component for 8-8-4 palette
+   $3 and
+   #255 * 1 + 3 /
+;
+   
+: lcd-layer1-color-map-8-8-4 ( -- )     \ colormap 8 level red 8 green 4 blue
+  256 0 do
+    i red-884
+    i green-884
+    i blue-884
+    rgb>color
+    i
+    lcd-layer1-color-map
+    lcd-reg-update
+  loop
+;
 
 
 \ ***************************************** old ******************************************
@@ -368,39 +409,6 @@ $10 constant LTDC_LxCR_CLUTEN                \ Color Look-Up Table Enable
    layer-base $9C + ! ;
 : lcd-layer-blend-cfg! ( bf1 bf2 layer -- )  \ set layer blending function
    layer-base $a0 + -rot swap 8 lshift or swap ! ;
-: lcd-layer-color-map ( c i l -- )           \ set layer color at map index
-   layer-base $c4 +
-   -rot $ff and #24 lshift                   \ shift index to pos [31..24]
-   swap $ffffff and or                       \ cleanup color
-   swap ! ;
-
-: lcd-layer-colormap-gray-scale ( layer -- ) \ grayscale colormap quick n dirty
-   >R
-   #256 0 do
-     i dup dup #8 lshift or #8 lshift or
-     i r@ lcd-layer-color-map
-   loop rdrop ;
-: red-884 ( i -- c )                         \ calc red component for 8-8-4 palette
-   $e0 and #5 rshift
-   #255 * #3 + #7 /
-   #16 lshift ;
-: green-884 ( i -- c )                       \ green component for 8-8-4 palette
-   $1C and #2 rshift
-   #255 * #3 + #7 /
-   #8 lshift ;
-: blue-884 ( i -- c )                        \ blue component for 8-8-4 palette
-   $3 and
-   #255 * 1 + 3 / ;
-   
-: lcd-layer-color-map-8-8-4 ( layer -- )     \ colormap 8 level red 8 green 4 blue
-   >R
-  256 0 do
-    i dup red-884                            \ red
-    over  green-884 or                       \ green
-    over  blue-884 or                        \ blue
-    swap R@ lcd-layer-color-map
-    lcd-reg-update
-  loop rdrop ;
    
 \ layer 1 view port constants
 RK043FN48H_HSYNC RK043FN48H_HBP +       constant L1-h-start
@@ -418,8 +426,8 @@ L1-v-start       RK043FN48H_HEIGHT + 1- constant L1-v-end
    lcd-fb1 @ lcd-layer1-fb-adr!    \ set frame buffer address
    MAX_WIDTH lcd-layer1-fb-line-length!
    MAX_HEIGHT lcd-layer1-num-lines!
-   layer1 fb-init-0-ff
-   layer1 lcd-layer-color-map-8-8-4
+   fb-init-0-ff
+   lcd-layer1-color-map-8-8-4
    lcd-layer1-on
    0 layer1 lcd-layer-default-color!
    lcd-reg-update
@@ -638,12 +646,10 @@ L1-v-start       RK043FN48H_HEIGHT + 1- constant L1-v-end
 0 variable idx                           \ current color cycling palette index 
 : idx++ ( -- )
   idx @ 1+ $ff and idx ! ;
-: rgb>color ( r g b -- c )               \ calc color c from r-g-b components
-  $ff and swap $ff and 8 lshift or swap $ff and #16 lshift or ;
 : r-g-b-r ( -- )                         \ red green blue palette for color cycling, start at idx
-  #256 0 do #255 i - i 0 rgb>color idx @ layer1 lcd-layer-color-map idx++ 3 +loop
-  #256 0 do 0 #255 i - i rgb>color idx @ layer1 lcd-layer-color-map idx++ 3 +loop
-  #256 0 do i 0 #255 i - rgb>color idx @ layer1 lcd-layer-color-map idx++ 3 +loop ;
+  #256 0 do #255 i - i 0 rgb>color idx @ lcd-layer1-color-map idx++ 3 +loop
+  #256 0 do 0 #255 i - i rgb>color idx @ lcd-layer1-color-map idx++ 3 +loop
+  #256 0 do i 0 #255 i - rgb>color idx @ lcd-layer1-color-map idx++ 3 +loop ;
 
 : delay 0 do loop ;
 : palette-demo ( -- )                    \ color cycle palette
@@ -800,7 +806,7 @@ grid-space 6 * constant grid-h-length
                           
 : test-genchar                           \ test genchar
    lcd-init                                  \ init display
-   layer1 lcd-layer-color-map-8-8-4      \ colormap rgb 8-8-4
+   lcd-layer1-color-map-8-8-4      \ colormap rgb 8-8-4
    black fill                            \ clear screen
    232 color! draw-raster-6x8            \ orange raster
    green color!
