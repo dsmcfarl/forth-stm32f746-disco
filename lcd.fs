@@ -94,6 +94,14 @@ RK043FN48H_HEIGHT constant MAX_HEIGHT    \ maximum height
 %101 constant L8_FMT
 : lcd-layer1-pixel-format! ( %bbb -- ) LTDC_L1PFCR_PF bf! ;
 
+\ setup a frame buffer   
+\ TODO: why the variabls? how does BUFFER: work?
+MAX_WIDTH MAX_HEIGHT * dup BUFFER: lcd-fb1-buffer constant lcd-fb1-size#
+lcd-fb1-buffer variable lcd-fb1              \ frame buffer 1 pointer
+lcd-fb1-size#  variable lcd-fb1-size         \ frame buffer 1 size
+: lcd-layer1-fb-adr!  ( a -- ) LTDC_L1CFBAR_CFBADD bf! ;
+: lcd-layer1-fb-adr@  ( a -- ) LTDC_L1CFBAR_CFBADD bf@ ;
+
 \ ***************************************** old ******************************************
 : u.8 ( n -- )                           \ unsigned output 8 digits
    0 <# # # # # # # # # #> type ;
@@ -338,10 +346,6 @@ $10 constant LTDC_LxCR_CLUTEN                \ Color Look-Up Table Enable
    layer-base $9C + ! ;
 : lcd-layer-blend-cfg! ( bf1 bf2 layer -- )  \ set layer blending function
    layer-base $a0 + -rot swap 8 lshift or swap ! ;
-: lcd-layer-fb-adr!  ( a layer -- )          \ set layer frame buffer start adr
-   layer-base $ac + ! ;
-: lcd-layer-fb-adr@  ( layer -- a )          \ get layer frame buffer start adr
-   layer-base $ac + @ ;
 : lcd-layer-fb-line-length! ( len layer -- ) \ set layer line length in byte
    layer-base $B0 +
    swap dup #16 lshift
@@ -354,11 +358,6 @@ $10 constant LTDC_LxCR_CLUTEN                \ Color Look-Up Table Enable
    swap $ffffff and or                       \ cleanup color
    swap ! ;
 
-\ setup a frame buffer   
-MAX_WIDTH MAX_HEIGHT * dup BUFFER: lcd-fb1-buffer constant lcd-fb1-size#
-
-lcd-fb1-buffer variable lcd-fb1              \ frame buffer 1 pointer
-lcd-fb1-size#  variable lcd-fb1-size         \ frame buffer 1 size
 : lcd-layer-colormap-gray-scale ( layer -- ) \ grayscale colormap quick n dirty
    >R
    #256 0 do
@@ -389,7 +388,7 @@ lcd-fb1-size#  variable lcd-fb1-size         \ frame buffer 1 size
    
 : fb-init-0-ff ( layer -- )              \ fill frame buffer with values 0..255
    lcd-reg-update
-   lcd-layer-fb-adr@
+   lcd-layer1-fb-adr@
    MAX_WIDTH MAX_HEIGHT * 0 do dup i + i swap c! loop drop ;
 
 \ layer 1 view port constants
@@ -405,7 +404,7 @@ L1-v-start       RK043FN48H_HEIGHT + 1- constant L1-v-end
    L1-v-start L1-v-end lcd-layer1-v-pos!
    0 0 0 lcd-layer1-key-color!         \ key color black no used here
    L8_FMT lcd-layer1-pixel-format!     \ 8 bit per pixel frame buffer format
-   lcd-fb1 @ layer1 lcd-layer-fb-adr!    \ set frame buffer address
+   lcd-fb1 @ lcd-layer1-fb-adr!    \ set frame buffer address
    MAX_WIDTH layer1 lcd-layer-fb-line-length!
    MAX_HEIGHT layer1 lcd-layer-num-lines!
    layer1 fb-init-0-ff
