@@ -39682,8 +39682,8 @@
                <resetValue>0x00000000</resetValue>
                <fields>
                   <field>
-                     <name>AAV</name>
-                     <description>AAV</description>
+                     <name>AAW</name>
+                     <description>AAW</description>
                      <bitOffset>16</bitOffset>
                      <bitWidth>10</bitWidth>
                   </field>
