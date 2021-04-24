@@ -163,6 +163,9 @@ lcd-fb1-size#  variable lcd-fb1-size         \ frame buffer 1 size
     lcd-reg-update
   loop
 ;
+: lcd-layer1-default-color! ( c -- )    \ set layer default color ( argb8888 )
+  LTDC_L1DCCR !
+;
 
 
 \ ***************************************** old ******************************************
@@ -405,8 +408,6 @@ $10 constant LTDC_LxCR_CLUTEN                \ Color Look-Up Table Enable
    LTDC + 1-foldable ;
 : lcd-layer-const-alpha! ( alpha layer -- )  \ set layer constant alpha
    layer-base $98 + ! ;
-: lcd-layer-default-color! ( c layer -- )    \ set layer default color ( argb8888 )
-   layer-base $9C + ! ;
 : lcd-layer-blend-cfg! ( bf1 bf2 layer -- )  \ set layer blending function
    layer-base $a0 + -rot swap 8 lshift or swap ! ;
    
@@ -429,7 +430,7 @@ L1-v-start       RK043FN48H_HEIGHT + 1- constant L1-v-end
    fb-init-0-ff
    lcd-layer1-color-map-8-8-4
    lcd-layer1-on
-   0 layer1 lcd-layer-default-color!
+   $0 lcd-layer1-default-color!
    lcd-reg-update
    ;
 : lcd-init  ( -- )                       \ pll-input frequency must be 1 MHz
