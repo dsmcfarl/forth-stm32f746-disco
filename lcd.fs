@@ -82,6 +82,10 @@ RK043FN48H_HEIGHT constant MAX_HEIGHT    \ maximum height
 : lcd-reg-update ( -- ) LTDC_SRCR_IMR bfs! ;
 : lcd-backlight-on  ( -- ) GPIOK_BSRR_BS3 bfs! ;
 : lcd-disp-on  ( -- ) GPIOI_BSRR_BS12 bfs! ;
+: lcd-layer1-on  ( -- ) LTDC_L1CR_CLUTEN bfs! lcd-reg-update LTDC_L1CR_LEN bfs! ;
+: lcd-layer1-off  ( -- ) $0 LTDC_L1CR ! ;
+: lcd-layer1-h-pos! ( start end -- ) LTDC_L1WHPCR_WHSPPOS bf! lcd-reg-update LTDC_L1WHPCR_WHSTPOS bf! ;
+: lcd-layer1-v-pos! ( start end -- ) LTDC_L1WVPCR_WVSPPOS bf! lcd-reg-update LTDC_L1WVPCR_WVSTPOS bf! ;
 
 
 \ ***************************************** old ******************************************
@@ -322,16 +326,6 @@ $10 constant LTDC_LxCR_CLUTEN                \ Color Look-Up Table Enable
    0<> $80 and LTDC + 1-foldable ;
 : layer-base ( l -- offset )                 \ layer base address
    LTDC + 1-foldable ;
-: lcd-layer-on!  ( lcfg layer -- )           \ set layer control register
-   layer-base $84 + swap 1 or swap ! ;
-: lcd-layer-off  ( layer -- )                \ set layer off
-   layer-base $84 + 0 swap ! ;
-: lcd-layer-h-pos! ( start end layer -- )    \ set layer window horizontal position
-   layer-base $88 +
-   -rot #16 lshift or swap ! ;
-: lcd-layer-v-pos! ( start end layer -- )    \ set layer window vertical position
-   layer-base $8C +
-   -rot #16 lshift or swap ! ;
 : lcd-layer-key-color! ( color layer -- )    \ set layer color keying color
    layer-base $90 + ! ;
 : lcd-layer-pixel-format! ( fmt layer -- )   \ set layer pixel format
@@ -404,9 +398,9 @@ L1-v-start       RK043FN48H_HEIGHT + 1- constant L1-v-end
 
 
 : lcd-layer1-init ( -- )
-   layer1 lcd-layer-off
-   L1-h-start L1-h-end layer1 lcd-layer-h-pos!
-   L1-v-start L1-v-end layer1 lcd-layer-v-pos!
+   lcd-layer1-off
+   L1-h-start L1-h-end lcd-layer1-h-pos!
+   L1-v-start L1-v-end lcd-layer1-v-pos!
    0 layer1 lcd-layer-key-color!         \ key color black no used here
    #5 layer1 lcd-layer-pixel-format!     \ 8 bit per pixel frame buffer format
    lcd-fb1 @ layer1 lcd-layer-fb-adr!    \ set frame buffer address
@@ -414,7 +408,7 @@ L1-v-start       RK043FN48H_HEIGHT + 1- constant L1-v-end
    MAX_HEIGHT layer1 lcd-layer-num-lines!
    layer1 fb-init-0-ff
    layer1 lcd-layer-color-map-8-8-4
-   LTDC_LxCR_CLUTEN layer1 lcd-layer-on!
+   lcd-layer1-on
    0 layer1 lcd-layer-default-color!
    lcd-reg-update
    ;
