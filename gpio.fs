@@ -25,8 +25,3 @@
 %01 constant MED_SPD
 %10 constant HIGH_SPD
 %11 constant VERY_HIGH_SPD
-
-: enable-gpiok-clock ( -- ) RCC_AHB1ENR_GPIOKEN bfs! ;
-: enable-gpioa-clock ( -- ) RCC_AHB1ENR_GPIOAEN bfs! ;
-: gpiok3-mode! ( %bb -- ) GPIOK_MODER_MODER3 bf! ;
-: gpioa8-mode! ( %bb -- ) GPIOA_MODER_MODER8 bf! ;

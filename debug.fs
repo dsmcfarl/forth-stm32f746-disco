@@ -12,7 +12,7 @@
   \ RCC_CFGR_MCO1 bfc!			\ send HSI clock to MCO1
   \ %10 RCC_CFGR_MCO1 bf!			\ send HSE clock to MCO1
   RCC_CFGR_MCO1PRE bfs!			\ divide MCO1 by 5
-  enable-gpioa-clock
-  AF gpioa8-mode!
+  RCC_AHB1ENR_GPIOAEN bfs!
+  AF GPIOK_MODER_MODER3 bf!
   GPIOA_OSPEEDR_OSPEEDR8 bfs!	\ set GPIOA8 to very high speed
 ;
