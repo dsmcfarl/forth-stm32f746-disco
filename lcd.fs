@@ -86,7 +86,11 @@ RK043FN48H_HEIGHT constant MAX_HEIGHT    \ maximum height
 : lcd-layer1-off  ( -- ) $0 LTDC_L1CR ! ;
 : lcd-layer1-h-pos! ( start end -- ) LTDC_L1WHPCR_WHSPPOS bf! lcd-reg-update LTDC_L1WHPCR_WHSTPOS bf! ;
 : lcd-layer1-v-pos! ( start end -- ) LTDC_L1WVPCR_WVSPPOS bf! lcd-reg-update LTDC_L1WVPCR_WVSTPOS bf! ;
-
+: lcd-layer1-key-color! ( r g b -- )    \ set layer color keying color
+  LTDC_L1CKCR_CKBLUE bf!
+  LTDC_L1CKCR_CKGREEN bf!
+  LTDC_L1CKCR_CKRED bf!
+;
 
 \ ***************************************** old ******************************************
 : u.8 ( n -- )                           \ unsigned output 8 digits
@@ -326,8 +330,6 @@ $10 constant LTDC_LxCR_CLUTEN                \ Color Look-Up Table Enable
    0<> $80 and LTDC + 1-foldable ;
 : layer-base ( l -- offset )                 \ layer base address
    LTDC + 1-foldable ;
-: lcd-layer-key-color! ( color layer -- )    \ set layer color keying color
-   layer-base $90 + ! ;
 : lcd-layer-pixel-format! ( fmt layer -- )   \ set layer pixel format
    layer-base $94 + ! ;
 : lcd-layer-const-alpha! ( alpha layer -- )  \ set layer constant alpha
@@ -401,7 +403,7 @@ L1-v-start       RK043FN48H_HEIGHT + 1- constant L1-v-end
    lcd-layer1-off
    L1-h-start L1-h-end lcd-layer1-h-pos!
    L1-v-start L1-v-end lcd-layer1-v-pos!
-   0 layer1 lcd-layer-key-color!         \ key color black no used here
+   0 0 0 lcd-layer1-key-color!         \ key color black no used here
    #5 layer1 lcd-layer-pixel-format!     \ 8 bit per pixel frame buffer format
    lcd-fb1 @ layer1 lcd-layer-fb-adr!    \ set frame buffer address
    MAX_WIDTH layer1 lcd-layer-fb-line-length!
