@@ -106,6 +106,13 @@ lcd-fb1-size#  variable lcd-fb1-size         \ frame buffer 1 size
 : lcd-layer1-fb-line-length! ( len -- ) dup LTDC_L1CFBLR_CFBP bf! lcd-reg-update $3 + LTDC_L1CFBLR_CFBLL bf! ;
 : lcd-layer1-num-lines! ( lines -- ) LTDC_L1CFBLNR_CFBLNBR bf! ;
 
+: fb-init-0-ff ( -- )              \ fill frame buffer with values 0..255
+  lcd-reg-update
+  lcd-layer1-fb-adr@
+  MAX_WIDTH MAX_HEIGHT * 0 do dup i + i swap c! loop drop
+;
+
+
 \ ***************************************** old ******************************************
 : u.8 ( n -- )                           \ unsigned output 8 digits
    0 <# # # # # # # # # #> type ;
@@ -384,11 +391,6 @@ $10 constant LTDC_LxCR_CLUTEN                \ Color Look-Up Table Enable
     lcd-reg-update
   loop rdrop ;
    
-: fb-init-0-ff ( layer -- )              \ fill frame buffer with values 0..255
-   lcd-reg-update
-   lcd-layer1-fb-adr@
-   MAX_WIDTH MAX_HEIGHT * 0 do dup i + i swap c! loop drop ;
-
 \ layer 1 view port constants
 RK043FN48H_HSYNC RK043FN48H_HBP +       constant L1-h-start
 L1-h-start       RK043FN48H_WIDTH + 1-  constant L1-h-end
