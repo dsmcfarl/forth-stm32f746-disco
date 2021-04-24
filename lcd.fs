@@ -109,7 +109,18 @@ lcd-fb1-size#  variable lcd-fb1-size         \ frame buffer 1 size
 : fb-init-0-ff ( -- )              \ fill frame buffer with values 0..255
   lcd-reg-update
   lcd-layer1-fb-adr@
-  MAX_WIDTH MAX_HEIGHT * 0 do dup i + i swap c! loop drop
+  MAX_HEIGHT 0 do
+	  MAX_WIDTH 0 do
+		dup
+		j MAX_WIDTH *
+		i +
+		+
+		j MAX_WIDTH *
+		i +
+		swap c!
+	  loop
+  loop
+  drop
 ;
 
 
