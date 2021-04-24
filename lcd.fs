@@ -46,12 +46,12 @@
 \ ***** LCD Timings *********************
 #480 constant RK043FN48H_WIDTH
 #272 constant RK043FN48H_HEIGHT
-#41  constant RK043FN48H_HSYNC           \ Horizontal synchronization
-#13  constant RK043FN48H_HBP             \ Horizontal back porch
-#32  constant RK043FN48H_HFP             \ Horizontal front porch
+#10  constant RK043FN48H_HSYNC           \ Horizontal synchronization
+#33  constant RK043FN48H_HBP             \ Horizontal back porch
+#8  constant RK043FN48H_HFP             \ Horizontal front porch
 #10  constant RK043FN48H_VSYNC           \ Vertical synchronization
 #2   constant RK043FN48H_VBP             \ Vertical back porch
-#2   constant RK043FN48H_VFP             \ Vertical front porch
+#4   constant RK043FN48H_VFP             \ Vertical front porch
 
 RK043FN48H_WIDTH  constant MAX_WIDTH     \ maximum width
 RK043FN48H_HEIGHT constant MAX_HEIGHT    \ maximum height
@@ -66,7 +66,7 @@ RK043FN48H_HEIGHT constant MAX_HEIGHT    \ maximum height
    RK043FN48H_VSYNC 1- LTDC_SSCR_VSH bf!
 
    RK043FN48H_HSYNC RK043FN48H_HBP + 1- LTDC_BPCR_AHBP bf!
-   RK043FN48H_VSYNC RK043FN48H_VBP + 1- LTDC_BPCR_AHBP bf!
+   RK043FN48H_VSYNC RK043FN48H_VBP + 1- LTDC_BPCR_AVBP bf!
 
    RK043FN48H_WIDTH  RK043FN48H_HSYNC + RK043FN48H_HBP + 1- LTDC_AWCR_AAV bf!
    RK043FN48H_HEIGHT RK043FN48H_VSYNC + RK043FN48H_VBP + 1- LTDC_AWCR_AAH bf!
