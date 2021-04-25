@@ -49,6 +49,10 @@
 : bfb. ( addr offset width -- )		\ print value from bitfield in binary
   base @ >R hex bf. R> base !
 ;
+: bfm ( offset width -- mask )
+  width-to-mask swap lshift 
+  2-foldable
+ ;
 
 : h.
   base @ >R hex . R> base !

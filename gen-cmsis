@@ -65,9 +65,9 @@ def print_periph(p, mmf, bff, wanted_regs):
         print(f'{s}\\ {r.access} {r.description}', file=mmf)
         print(f'\ {reg_name} {formatted_access(r.access)}Reset: 0x{r.reset_value:08x}', file=bff)
         for f in r.fields:
-            s = f': {reg_name}_{f.name} ( -- addr offset width ) {reg_name} #{f.bit_offset} #{f.bit_width} ;'
-            s = pad_tabs(s, BFF_COMMENT_COLUMN)
-            print(f'{s}\\ {formatted_access(f.access)}{replace_multi_spaces_w_one(r.description)}', file=bff)
+            #s = f': {reg_name}_{f.name} ( -- addr offset width ) {reg_name} #{f.bit_offset} #{f.bit_width} ;'
+            #s = pad_tabs(s, BFF_COMMENT_COLUMN)
+            #print(f'{s}\\ {formatted_access(f.access)}{replace_multi_spaces_w_one(r.description)}', file=bff)
 
             name = f.name
             bf = BITFIELDS.get(name, None)
