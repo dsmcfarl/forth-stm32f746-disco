@@ -12,3 +12,4 @@ systick-interrupt-enable
 compiletoram
 #require lcd.fs
 lcd-init
+show-test-pattern
