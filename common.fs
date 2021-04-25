@@ -18,40 +18,41 @@
 : width-to-mask ( width -- mask )	\ covert a bitfield width to a mask
   #1 swap lshift #1 - 1-foldable
 ;
-: addr-offset-width-to-mask-addr ( addr offset width -- mask addr )
-  width-to-mask swap lshift swap
-  3-foldable
+: addr-offset-width-to-mask-addr ( addr addr-offset bit-offset width -- mask addr )
+  width-to-mask swap lshift rot rot +
+  4-foldable
  ;
 
+\ TODO: update comment
 \ Bitfields are represented by a bit offset, bit width, and register address
 \ triplet. The bitfield words defined in bitfields.fs leave the
 \ corresponding triplet on the stack. The following words perform an action
 \ using a bitfield triplet from the stack.
 
-: bfs! ( addr offset width -- )		\ set all bitfield bits
+: bfs! ( addr addr-offset bit-offset width -- )		\ set all bitfield bits
   addr-offset-width-to-mask-addr bis!
 ;
-: bfc! ( addr offset width -- )		\ clear all bitfield bits
+: bfc! ( addr addr-offset bit-offset width -- )		\ clear all bitfield bits
   addr-offset-width-to-mask-addr bic!
 ;
-: bf! ( u addr offset width -- )	\ store value in bitfield
+: bf! ( u addr addr-offset bit-offset width -- )	\ store value in bitfield
   addr-offset-width-to-mask-addr masked!
 ;
-: bf@ ( addr offset width -- u )	\ fetch value from bitfield
+: bf@ ( addr addr-offset bit-offset width -- u )	\ fetch value from bitfield
   addr-offset-width-to-mask-addr masked@
 ;
-: bf. ( addr offset width -- u )	\ print value from bitfield
+: bf. ( addr addr-offset bit-offset width -- u )	\ print value from bitfield
   bf@ .
 ;
-: bfh. ( addr offset width -- )		\ print value from bitfield in hex
+: bfh. ( addr addr-offset bit-offset width -- )		\ print value from bitfield in hex
   base @ >R hex bf. R> base !
 ;
-: bfb. ( addr offset width -- )		\ print value from bitfield in binary
+: bfb. ( addr addr-offset bit-offset width -- )		\ print value from bitfield in binary
   base @ >R hex bf. R> base !
 ;
-: bfm ( offset width -- mask )
-  width-to-mask swap lshift 
-  2-foldable
+: bfm ( addr-offset bit-offset width -- mask )
+  width-to-mask swap lshift swap drop
+  3-foldable
  ;
 
 : h.
