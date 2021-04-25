@@ -49,6 +49,9 @@ def replace_multi_spaces_w_one(s):
     return ' '.join(s.split())
 
 
+BITFIELDS = {}
+
+
 def print_periph(p, mmf, bff, wanted_regs):
     s = f'${p.base_address:x} constant {p.name}'
     s = pad_tabs(s, MMF_COMMENT_COLUMN)
@@ -62,7 +65,20 @@ def print_periph(p, mmf, bff, wanted_regs):
         print(f'{s}\\ {r.access} {r.description}', file=mmf)
         print(f'\ {reg_name} {formatted_access(r.access)}Reset: 0x{r.reset_value:08x}', file=bff)
         for f in r.fields:
-            s = f': {reg_name}_{f.name} ( -- offset width addr ) #{f.bit_offset} #{f.bit_width} {reg_name} ;'
+            s = f': {reg_name}_{f.name} ( -- addr offset width ) {reg_name} #{f.bit_offset} #{f.bit_width} ;'
+            s = pad_tabs(s, BFF_COMMENT_COLUMN)
+            print(f'{s}\\ {formatted_access(f.access)}{replace_multi_spaces_w_one(r.description)}', file=bff)
+
+            name = f.name
+            bf = BITFIELDS.get(name, None)
+            if bf:
+                if bf.bit_offset == f.bit_offset and bf.bit_width == f.bit_width:
+                    continue
+                print(f'WARNING: {reg_name}: {f.name} already exists with different offset and width, appending reg name')
+                name = f'{r.name}_{name}'
+            else:
+                BITFIELDS[name] = f
+            s = f': {name} ( -- offset width ) #{f.bit_offset} #{f.bit_width} ;'
             s = pad_tabs(s, BFF_COMMENT_COLUMN)
             print(f'{s}\\ {formatted_access(f.access)}{replace_multi_spaces_w_one(r.description)}', file=bff)
 

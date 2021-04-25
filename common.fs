@@ -18,8 +18,8 @@
 : width-to-mask ( width -- mask )	\ covert a bitfield width to a mask
   #1 swap lshift #1 - 1-foldable
 ;
-: offset-width-addr-to-mask-addr ( offset width addr -- mask addr )
-  >R width-to-mask swap lshift R>
+: addr-offset-width-to-mask-addr ( addr offset width -- mask addr )
+  width-to-mask swap lshift swap
   3-foldable
  ;
 
@@ -28,25 +28,25 @@
 \ corresponding triplet on the stack. The following words perform an action
 \ using a bitfield triplet from the stack.
 
-: bfs! ( offset width addr -- )		\ set all bitfield bits
-  offset-width-addr-to-mask-addr bis!
+: bfs! ( addr offset width -- )		\ set all bitfield bits
+  addr-offset-width-to-mask-addr bis!
 ;
-: bfc! ( offset width addr -- )		\ clear all bitfield bits
-  offset-width-addr-to-mask-addr bic!
+: bfc! ( addr offset width -- )		\ clear all bitfield bits
+  addr-offset-width-to-mask-addr bic!
 ;
-: bf! ( u offset width addr -- )	\ store value in bitfield
-  offset-width-addr-to-mask-addr masked!
+: bf! ( u addr offset width -- )	\ store value in bitfield
+  addr-offset-width-to-mask-addr masked!
 ;
-: bf@ ( offset width addr -- u )	\ fetch value from bitfield
-  offset-width-addr-to-mask-addr masked@
+: bf@ ( addr offset width -- u )	\ fetch value from bitfield
+  addr-offset-width-to-mask-addr masked@
 ;
-: bf. ( offset width addr -- u )	\ print value from bitfield
+: bf. ( addr offset width -- u )	\ print value from bitfield
   bf@ .
 ;
-: bfh. ( offset width addr -- )		\ print value from bitfield in hex
+: bfh. ( addr offset width -- )		\ print value from bitfield in hex
   base @ >R hex bf. R> base !
 ;
-: bfb. ( offset width addr -- )		\ print value from bitfield in binary
+: bfb. ( addr offset width -- )		\ print value from bitfield in binary
   base @ >R hex bf. R> base !
 ;
 
