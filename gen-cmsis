@@ -53,27 +53,43 @@ BITFIELDS = {}
 
 
 def print_periph(p, mmf, bff, wanted_regs):
+    # write peripheral address to memmap file
     s = f'${p.base_address:x} constant {p.name}'
     s = pad_tabs(s, MMF_COMMENT_COLUMN)
     print(f'{s}\\ {p.description}', file=mmf)
+
     for r in p.registers:
         reg_name = f'{p.name}_{r.name}'
         if reg_name not in wanted_regs:
+            # skip if not a register we are interested in
             continue
+
+        # write register address to memmap file 
         s = f'{p.name} ${r.address_offset:x} + constant {reg_name}'
         s = pad_tabs(s, MMF_COMMENT_COLUMN)
         print(f'{s}\\ {r.access} {r.description}', file=mmf)
+
+        # write register comment to bitfields file
         print(f'\ {reg_name} {formatted_access(r.access)}Reset: 0x{r.reset_value:08x}', file=bff)
+
         for f in r.fields:
             name = f'{r.name}_{f.name}'
+
+            # see if we already have this bitfield from another peripheral
             bf = BITFIELDS.get(name, None)
             if bf:
+                # already have seen a bitfield with this name, see if it is the same
                 if bf.bit_offset == f.bit_offset and bf.bit_width == f.bit_width and bf.address_offset == r.address_offset:
+                    # the same so don't duplicate (e.g., MODER_MODER0 is the same for GPIOA as GPIOB)
                     continue
+                # warn about a duplicate
                 print(f'WARNING: {reg_name}: {f.name} already exists with different offset and width, duplicating')
             else:
+                # new bitfield so cache it
                 f.address_offset = r.address_offset
                 BITFIELDS[name] = f
+
+            # write bitfield triplet word to bitfields file
             s = f': {name} ( -- addr-offset bit-offset width ) ${r.address_offset:x} #{f.bit_offset} #{f.bit_width} ;'
             s = pad_tabs(s, BFF_COMMENT_COLUMN)
             print(f'{s}\\ {formatted_access(f.access)}{replace_multi_spaces_w_one(r.description)}', file=bff)
