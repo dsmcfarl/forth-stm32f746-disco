@@ -60,16 +60,16 @@ HSE_CLK_HZ #1000000 / constant PLLM_VAL	\ division factor for main PLLs input cl
   enable-art-cache
 ;
 
-%0000 constant HPRE/1			\ sysclk divided by 1
-%101 constant PPRE1/4			\ sysclk divided by 4
-%100 constant PPRE2/2			\ sysclk divided by 2
+%0000 constant HPRE/1_VAL		\ sysclk divided by 1
+%101 constant PPRE1/4_VAL		\ sysclk divided by 4
+%100 constant PPRE2/2_VAL		\ sysclk divided by 2
 : ahb-pre-scalar! ( %bbbb -- ) RCC CFGR_HPRE bf! ;
 : apb1-low-speed-pre-scalar! ( %bbb -- ) RCC CFGR_PPRE1 bf! ;
 : apb2-high-speed-pre-scalar! ( %bbb -- ) RCC CFGR_PPRE2 bf! ;
 : cfg-bus-pre-scalars ( -- )
-  HPRE/1 ahb-pre-scalar!
-  PPRE1/4 apb1-low-speed-pre-scalar!
-  PPRE2/2 apb2-high-speed-pre-scalar!
+  HPRE/1_VAL ahb-pre-scalar!
+  PPRE1/4_VAL apb1-low-speed-pre-scalar!
+  PPRE2/2_VAL apb2-high-speed-pre-scalar!
 ;
 
 : wait-pll-rdy ( -- ) begin RCC CR_PLLRDY bf@ until ;
