@@ -26,25 +26,13 @@
 %10 constant HIGH
 %11 constant VERY_HIGH
 
-$40020000 constant GPIOA
-GPIOA $400 + constant GPIOB
-GPIOB $400 + constant GPIOC
-GPIOC $400 + constant GPIOD
-GPIOD $400 + constant GPIOE
-GPIOE $400 + constant GPIOF
-GPIOF $400 + constant GPIOG
-GPIOG $400 + constant GPIOH
-GPIOH $400 + constant GPIOI
-GPIOI $400 + constant GPIOJ
-GPIOJ $400 + constant GPIOK
-  
-$0 constant MODER_OFFSET
-$0 constant MODER_PIN0_OFFSET
-#2 constant MODER_WIDTH
+MODER_MODER0
+  constant MODER_WIDTH
+  constant MODER_PIN0_OFFSET
+  constant MODER_OFFSET
 : moder! ( mode port pin -- )
   MODER_WIDTH * MODER_PIN0_OFFSET +
   MODER_WIDTH
   rot MODER_OFFSET +
   bf!
 ;
-
