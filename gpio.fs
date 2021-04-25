@@ -1,5 +1,7 @@
 #require common.fs
 
+\ mecrisp-stellaris automatically enables all gpio ports
+
 %00 constant INPUT
 %01 constant OUTPUT
 %10 constant AF

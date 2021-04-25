@@ -83,27 +83,6 @@ HSE_CLK_HZ #1000000 / constant PLLM_VAL	\ division factor for main PLLs input cl
   baud-rate-for-16x-oversampling USART1_BRR !
 ;
 
-#192 constant PLLSAIN_VAL
-#5 constant PLLSAIR_VAL
-%01 constant PLLSAIDIVR\4_VAL		\ divide by 4
-: enable-lcd-tft-controller-clock ( -- ) RCC APB2ENR_LTDCEN bfs! ;
-: pllsai-off ( -- ) RCC CR_PLLSAION bfc! ;
-: pllsai-on ( -- ) RCC CR_PLLSAION bfs! ;
-: wait-pllsai-rdy ( -- ) begin RCC CR_PLLSAIRDY bf@ until ;
-: pllsain! ( %bbbbbbbbb -- ) RCC PLLSAICFGR_PLLSAIN bf! ;
-: pllsair! ( %bbb -- ) RCC PLLSAICFGR_PLLSAIR bf! ;
-: pllsaidivr! ( %bb -- ) RCC DKCFGR1_PLLSAIDIVR bf! ;
-: cfg-pllsai ( -- )
-  enable-lcd-tft-controller-clock
-  pllsai-off
-  \ 192 / 5 / 4 = 9.6 MHz
-  PLLSAIN_VAL pllsain!
-  PLLSAIR_VAL pllsair!
-  PLLSAIDIVR\4_VAL pllsaidivr!
-  pllsai-on
-  wait-pllsai-rdy
-;  
-
 : cfg-sysclk  ( -- )
   hsi-on
   wait-hsi-rdy
@@ -118,5 +97,4 @@ HSE_CLK_HZ #1000000 / constant PLLM_VAL	\ division factor for main PLLs input cl
   wait-pll-rdy
   set-sysclk-src-to-pll
   cfg-usart1
-  cfg-pllsai
 ;

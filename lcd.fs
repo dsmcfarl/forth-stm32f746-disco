@@ -10,11 +10,29 @@
 #10	constant RK043FN48H_VSYNC	\ vert sync
 #2	constant RK043FN48H_VBP		\ vert back porch
 #4	constant RK043FN48H_VFP		\ vert front porch
-$000000	constant BLACK
-: lcd-background-color! ( c -- ) LTDC BCCR_BC bf! ;
-: cfg-lcd-display ( -- )
-  \ NOTE: LTDCEN conflicts with LTDCEN from RCC_APB2ENR so this has GCR_ prefix
-  LTDC GCR_LTDCEN bfs!
+
+: enable-lcd-controller-clock ( -- ) RCC APB2ENR_LTDCEN bfs! ;
+
+#192 constant PLLSAIN_VAL
+#5 constant PLLSAIR_VAL
+%01 constant PLLSAIDIVR\4_VAL		\ divide by 4
+: pllsai-off ( -- ) RCC CR_PLLSAION bfc! ;
+: pllsai-on ( -- ) RCC CR_PLLSAION bfs! ;
+: wait-pllsai-rdy ( -- ) begin RCC CR_PLLSAIRDY bf@ until ;
+: pllsain! ( %bbbbbbbbb -- ) RCC PLLSAICFGR_PLLSAIN bf! ;
+: pllsair! ( %bbb -- ) RCC PLLSAICFGR_PLLSAIR bf! ;
+: pllsaidivr! ( %bb -- ) RCC DKCFGR1_PLLSAIDIVR bf! ;
+: cfg-pixel-clock-9.6mhz ( -- )
+  pllsai-off
+  \ 192 / 5 / 4 = 9.6 MHz
+  PLLSAIN_VAL pllsain!
+  PLLSAIR_VAL pllsair!
+  PLLSAIDIVR\4_VAL pllsaidivr!
+  pllsai-on
+  wait-pllsai-rdy
+;  
+
+: cfg-lcd-timings ( -- )
   RK043FN48H_HSYNC 1- LTDC SSCR_HSW bf!						\ horiz sync width
   RK043FN48H_VSYNC 1- LTDC SSCR_VSH bf!						\ vert sync width
   RK043FN48H_HSYNC RK043FN48H_HBP + 1- LTDC BPCR_AHBP bf!			\ accumulated horiz back porch
@@ -25,12 +43,12 @@ $000000	constant BLACK
   RK043FN48H_HBP + RK043FN48H_HFP + 1- LTDC TWCR_TOTALW bf!			\ total width
   RK043FN48H_HEIGHT RK043FN48H_VSYNC +
   RK043FN48H_VBP + RK043FN48H_VFP + 1- LTDC TWCR_TOTALH bf!			\ total height
-  BLACK lcd-background-color!
-  LTDC GCR_LTDCEN bfs!								\ enable LTDCEN LCD-TFT controller
 ;
 
+$000000	constant BLACK
+: lcd-background-color! ( c -- ) LTDC BCCR_BC bf! ;
+
 : cfg-lcd-gpio ( -- )
-  \ mecrisp-stellaris automatically enables all gpio ports
   AF GPIOI MODER_MODER15 bf! HIGH GPIOI OSPEEDR_OSPEEDR15 bf! AF14 GPIOI AFRH_AFRH15 bf!	\ LCD_R0
   AF GPIOJ MODER_MODER0 bf! HIGH GPIOJ OSPEEDR_OSPEEDR0 bf! AF14 GPIOJ AFRL_AFRL0 bf!	\ LCD_R1
   AF GPIOJ MODER_MODER1 bf! HIGH GPIOJ OSPEEDR_OSPEEDR1 bf! AF14 GPIOJ AFRL_AFRL1 bf!	\ LCD_R2
@@ -63,8 +81,9 @@ $000000	constant BLACK
   OUTPUT GPIOK MODER_MODER3 bf!									\ LCD_BL
 ;
 
-\ Some LTDC registers use shadow registers so if writing to more than one bitfield
-\ in separate ops so you have to do lcd-reg-update in between.
+\ All of the layer1 and layer2 registers except the LTDC_LxCLUTWR register are
+\ shadowed. If writing to more than one bitfield in separate ops you have to
+\ do lcd-reg-update in between for shadowed registers.
 : lcd-reg-update ( -- ) LTDC SRCR_IMR bfs! ;
 
 : lcd-backlight-on  ( -- ) GPIOK BSRR_BS3 bfs! ;
@@ -183,6 +202,22 @@ L1-v-start       RK043FN48H_HEIGHT + 1- constant L1-v-end
    $0 lcd-layer1-default-color!
    lcd-reg-update
    ;
+
+: enable-lcd-controller ( -- ) LTDC GCR_LTDCEN bfs! ;
+
 : lcd-init  ( -- )                       \ pll-input frequency must be 1 MHz
-   cfg-lcd-display lcd-reg-update cfg-lcd-gpio lcd-disp-on
-   lcd-layer1-init lcd-reg-update lcd-backlight-on ;
+  enable-lcd-controller-clock
+  cfg-pixel-clock-9.6mhz
+  cfg-lcd-timings
+  \ config sync signals and polarities in LTDC_GCR if needed
+  BLACK lcd-background-color!
+  \ config interrupts if needed
+  
+  lcd-reg-update
+  cfg-lcd-gpio
+  lcd-disp-on
+  lcd-layer1-init
+  lcd-reg-update
+  lcd-backlight-on
+  enable-lcd-controller
+;
