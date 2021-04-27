@@ -48,7 +48,10 @@
 ;
 
 : bf@ ( addr addr-offset bit-offset width -- u )	\ fetch value from bitfield
-  addr-offset-width-to-mask-addr masked@
+  over >R		\ save a copy of bit-offset
+  offset-width-to-mask
+  -rot +		\ move mask out of way and calc address ( mask addr, R: bit-offset )
+  @ and R> rshift	\ fetch value and mask it then rshift by bit-offset
 ;
 : bf. ( addr addr-offset bit-offset width -- u )	\ print value from bitfield
   bf@ .
