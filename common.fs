@@ -10,14 +10,14 @@
    count-trailing-zeros rshift
  ;
 : masked! ( u mask addr -- )		\ store value at masked bits at address
-  >R dup >R count-trailing-zeros lshift	\ shift value to proper position
-  R@ and				\ mask out unrelated bits
-  R> not R@ @ and			\ invert bitmask and maskout new bits in current value
+  >R dup >R count-trailing-zeros lshift	\ shift value to proper position (u-shifted , R: mask addr )
+  R@ and				\ mask out unrelated bits ( u-shifted-masked , R: mask addr )
+  R> not R@ @ and			\ invert bitmask and maskout new bits in current value ( u-shifted-masked val-from-addr-masked, R: addr )
   or r> !				\ apply value and store back
 ;
-: width-to-mask ( width -- mask )	\ covert a bitfield width to a mask
-  #1 swap lshift #1 - 1-foldable
-;
+: width-to-mask ( width -- mask ) #1 swap lshift #1 - 1-foldable ;
+: offset-width-to-mask ( offset width -- mask ) width-to-mask swap lshift ;
+
 : addr-offset-width-to-mask-addr ( addr addr-offset bit-offset width -- mask addr )
   width-to-mask swap lshift rot rot +
   4-foldable
@@ -30,14 +30,23 @@
 \ using a bitfield triplet from the stack.
 
 : bfs! ( addr addr-offset bit-offset width -- )		\ set all bitfield bits
-  addr-offset-width-to-mask-addr bis!
+  offset-width-to-mask -rot + bis!
 ;
 : bfc! ( addr addr-offset bit-offset width -- )		\ clear all bitfield bits
-  addr-offset-width-to-mask-addr bic!
+  offset-width-to-mask -rot + bic!
 ;
 : bf! ( u addr addr-offset bit-offset width -- )	\ store value in bitfield
-  addr-offset-width-to-mask-addr masked!
+  over >R		\ save a copy of bit-offset
+  offset-width-to-mask	\ get a mask ( u addr addr-offset mask, R: bit-offset )
+  -rot + rot		\ calc address and move u to top ( mask addr u, R: bit-offset )
+  R> lshift		\ shift u to proper position ( mask addr u-shifted )
+  rot dup not >R	\ ( addr u-shifted mask, R: mask-inverted )	
+  and			\ ( addr u-shifted-masked, R: mask-inverted )
+  swap dup		\ ( u-shifted-masked addr addr, R: mask-inverted )
+  @ R> and		\ ( u-shifted-masked addr val-from-addr-masked )
+  rot or swap !
 ;
+
 : bf@ ( addr addr-offset bit-offset width -- u )	\ fetch value from bitfield
   addr-offset-width-to-mask-addr masked@
 ;
@@ -51,9 +60,8 @@
   base @ >R hex bf. R> base !
 ;
 : bfm ( addr-offset bit-offset width -- mask )
-  width-to-mask swap lshift swap drop
-  3-foldable
- ;
+  offset-width-to-mask swap drop 3-foldable
+;
 
 : h.
   base @ >R hex . R> base !
