@@ -1,34 +1,17 @@
 #require memmap.fs
 #require bitfields.fs
 
-: count-trailing-zeros ( mask -- u )
-  dup negate and 1-
-  clz negate #32 + 1-foldable
-;
-: masked@ ( mask addr -- u )		\ fetch value from masked bits at address
-   @ over and swap
-   count-trailing-zeros rshift
- ;
-: masked! ( u mask addr -- )		\ store value at masked bits at address
-  >R dup >R count-trailing-zeros lshift	\ shift value to proper position (u-shifted , R: mask addr )
-  R@ and				\ mask out unrelated bits ( u-shifted-masked , R: mask addr )
-  R> not R@ @ and			\ invert bitmask and maskout new bits in current value ( u-shifted-masked val-from-addr-masked, R: addr )
-  or r> !				\ apply value and store back
-;
-: width-to-mask ( width -- mask ) #1 swap lshift #1 - 1-foldable ;
-: offset-width-to-mask ( offset width -- mask ) width-to-mask swap lshift ;
+\ helpers
+: width-to-mask ( width -- mask ) #1 swap lshift #1 - 1-foldable 1-foldable ;
+: offset-width-to-mask ( offset width -- mask ) width-to-mask swap lshift 2-foldable ;
 
-: addr-offset-width-to-mask-addr ( addr addr-offset bit-offset width -- mask addr )
-  width-to-mask swap lshift rot rot +
-  4-foldable
- ;
-
-\ TODO: update comment
-\ Bitfields are represented by a bit offset, bit width, and register address
-\ triplet. The bitfield words defined in bitfields.fs leave the
+\ Bitfields manipulation: bitfields are represented by a triplet of:
+\   * register address offset from peripheral address (defined in memmap.fs)
+\   * bit offset
+\   * bit width
+\ The bitfield words defined in bitfields.fs leave the
 \ corresponding triplet on the stack. The following words perform an action
-\ using a bitfield triplet from the stack.
-
+\ using a peripheral address and a bitfield triplet from the stack.
 : bfs! ( addr addr-offset bit-offset width -- )		\ set all bitfield bits
   offset-width-to-mask -rot + bis!
 ;
@@ -46,7 +29,6 @@
   @ R> and		\ ( u-shifted-masked addr val-from-addr-masked )
   rot or swap !
 ;
-
 : bf@ ( addr addr-offset bit-offset width -- u )	\ fetch value from bitfield
   over >R		\ save a copy of bit-offset
   offset-width-to-mask
@@ -60,12 +42,13 @@
   base @ >R hex bf. R> base !
 ;
 : bfb. ( addr addr-offset bit-offset width -- )		\ print value from bitfield in binary
-  base @ >R hex bf. R> base !
+  base @ >R binary bf. R> base !
 ;
 : bfm ( addr-offset bit-offset width -- mask )
   offset-width-to-mask swap drop 3-foldable
 ;
 
-: h.
-  base @ >R hex . R> base !
-;
+\ convenience words for printing in different formats without having the side
+\ effect of changing the base for future words
+: h. base @ >R hex . R> base ! ;	\ print in hex
+: b. base @ >R binary . R> base ! ;	\ print in binary
