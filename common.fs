@@ -47,6 +47,13 @@
 : bfm ( addr-offset bit-offset width -- mask )
   offset-width-to-mask swap drop 3-foldable
 ;
+: bf<< ( u addr-offset bit-offset width -- )		\ shift value into bitfield position and mask
+  rot drop		\ do not need addr-offset
+  over swap		\ save a copy of bit-offset
+  offset-width-to-mask
+  -rot
+  lshift and
+;
 
 \ convenience words for printing in different formats without having the side
 \ effect of changing the base for future words
