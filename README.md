@@ -70,3 +70,8 @@ installation to work.
   RCC_PLLCFGR_PLLN bfc!  ok.
 
 There are other variations available. See common.fs for details.
+
+## TODO
+* update this README with latest changes
+* use bf<< in lcd.fs
+* implement more words like moder! in gpio.fs and use in lcd.fs
