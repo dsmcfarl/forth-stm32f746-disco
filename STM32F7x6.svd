@@ -39824,10 +39824,22 @@
                <resetValue>0x00000000</resetValue>
                <fields>
                   <field>
-                     <name>BC</name>
+                     <name>BCRED</name>
                      <description>Background Color Red value</description>
+                     <bitOffset>16</bitOffset>
+                     <bitWidth>8</bitWidth>
+                  </field>
+                  <field>
+                     <name>BCGREEN</name>
+                     <description>Background Color Green value</description>
+                     <bitOffset>8</bitOffset>
+                     <bitWidth>8</bitWidth>
+                  </field>
+                  <field>
+                     <name>BCBLUE</name>
+                     <description>Background Color BLUE value</description>
                      <bitOffset>0</bitOffset>
-                     <bitWidth>24</bitWidth>
+                     <bitWidth>8</bitWidth>
                   </field>
                </fields>
             </register>
