@@ -73,5 +73,4 @@ There are other variations available. See common.fs for details.
 
 ## TODO
 * update this README with latest changes
-* use bf<< in lcd.fs
 * implement more words like moder! in gpio.fs and use in lcd.fs

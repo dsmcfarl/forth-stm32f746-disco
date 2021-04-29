@@ -45,7 +45,7 @@
   RK043FN48H_VBP + RK043FN48H_VFP + 1- LTDC TWCR_TOTALH bf!			\ total height
 ;
 
-: lcd-background-color! ( c -- ) LTDC BCCR_BC bf! ;
+: lcd-background-color! ( r g b -- ) BCCR_BCBLUE bf<< swap BCCR_BCGREEN bf<< or swap BCCR_BCRED bf<< or LTDC_BCCR ! ;
 
 : cfg-lcd-gpio ( -- )
   AF GPIOI MODER_MODER15 bf! HIGH GPIOI OSPEEDR_OSPEEDR15 bf! AF14 GPIOI AFRH_AFRH15 bf!	\ LCD_R0
@@ -88,16 +88,15 @@ RK043FN48H_HSYNC RK043FN48H_HBP +       constant L1_H_START
 L1_H_START       RK043FN48H_WIDTH + 1-  constant L1_H_END
 RK043FN48H_VSYNC RK043FN48H_VBP +       constant L1_V_START
 L1_V_START       RK043FN48H_HEIGHT + 1- constant L1_V_END
-$000000					constant BLACK
 %101					constant L8_FMT     \ 8 bit per pixel frame buffer format
 RK043FN48H_WIDTH RK043FN48H_HEIGHT * dup BUFFER: LCD_FB1_BUFFER constant LCD_FB1_SIZE#
 LCD_FB1_BUFFER				variable LCD_FB1              \ frame buffer 1 pointer
 LCD_FB1_SIZE#				variable LCD_FB1_SIZE         \ frame buffer 1 size
-: lcd-layer1-h-pos! ( start end -- ) #16 lshift or LTDC_L1WHPCR ! ;
-: lcd-layer1-v-pos! ( start end -- ) #16 lshift or LTDC_L1WVPCR ! ;
+: lcd-layer1-h-pos! ( start end -- ) L1WHPCR_WHSPPOS bf<< swap L1WHPCR_WHSTPOS bf<< or LTDC_L1WHPCR ! ;
+: lcd-layer1-v-pos! ( start end -- ) L1WVPCR_WVSPPOS bf<< swap L1WVPCR_WVSTPOS bf<< or LTDC_L1WVPCR ! ;
 : lcd-layer1-pixel-format! ( %bbb -- ) LTDC L1PFCR_PF bf! ;
 : lcd-layer1-fb-adr! ( a -- ) LTDC L1CFBAR_CFBADD bf! ;
-: lcd-layer1-fb-line-length! ( len -- ) dup #16 lshift swap $3 + or LTDC_L1CFBLR ! ;
+: lcd-layer1-fb-line-length! ( len -- ) dup L1CFBLR_CFBP bf<< swap $3 + L1CFBLR_CFBLL bf<< or LTDC_L1CFBLR ! ;
 : lcd-layer1-num-lines! ( lines -- ) LTDC L1CFBLNR_CFBLNBR bf! ;
 \ ref: https://en.wikipedia.org/wiki/List_of_software_palettes#8-8-4_levels_RGB
 \ These map an index to an 8 bit color, cylcling thru the colors
@@ -105,19 +104,18 @@ LCD_FB1_SIZE#				variable LCD_FB1_SIZE         \ frame buffer 1 size
 : red-884 ( i -- c ) $e0 and #5 rshift #255 * #3 + #7 / ;
 : green-884 ( i -- c ) $1C and #2 rshift #255 * #3 + #7 / ;
 : blue-884 ( i -- c ) $3 and #255 * 1 + 3 / ;
-: add-lcd-layer1-color-map-entry ( c i -- ) #24 lshift or LTDC_L1CLUTWR ! ;
-: rgb>color ( r g b -- c ) $ff and swap $ff and 8 lshift or swap $ff and #16 lshift or ;
+: add-lcd-layer1-color-map-entry ( r g b i -- ) L1CLUTWR_CLUTADD bf<< swap L1CLUTWR_BLUE bf<< or swap L1CLUTWR_GREEN bf<< or swap L1CLUTWR_RED bf<< or LTDC_L1CLUTWR ! ;
 : create-lcd-layer1-color-map-8-8-4 ( -- )
   256 0 do
     i red-884
     i green-884
     i blue-884
-    rgb>color
     i
     add-lcd-layer1-color-map-entry
   loop
 ;
-: lcd-layer1-default-color! ( c -- ) LTDC_L1DCCR ! ;
+: BLACK_ARGB ( -- a r g b ) $0 $0 $0 $0 ;
+: lcd-layer1-default-color! ( a r g b -- ) L1DCCR_DCBLUE bf<< swap L1DCCR_DCGREEN bf<< or swap L1DCCR_DCRED bf<< or swap L1DCCR_DCALPHA bf<< or LTDC_L1DCCR ! ;
 : cfg-lcd-layer1 ( -- )
   L1_H_START L1_H_END lcd-layer1-h-pos!
   L1_V_START L1_V_END lcd-layer1-v-pos!
@@ -126,7 +124,7 @@ LCD_FB1_SIZE#				variable LCD_FB1_SIZE         \ frame buffer 1 size
   RK043FN48H_WIDTH lcd-layer1-fb-line-length!
   RK043FN48H_HEIGHT lcd-layer1-num-lines!
   create-lcd-layer1-color-map-8-8-4
-  BLACK lcd-layer1-default-color!
+  BLACK_ARGB lcd-layer1-default-color!
   \ config blending factors if needed
 ;
 
@@ -140,6 +138,8 @@ LCD_FB1_SIZE#				variable LCD_FB1_SIZE         \ frame buffer 1 size
 
 : enable-lcd-controller ( -- ) LTDC GCR_LTDCEN bfs! ;
 
+: BLACK_RGB ( -- r g b ) $0 $0 $0 ;
+
 : lcd-init  ( -- )
   cfg-lcd-gpio
   lcd-disp-on
@@ -148,7 +148,7 @@ LCD_FB1_SIZE#				variable LCD_FB1_SIZE         \ frame buffer 1 size
   cfg-pixel-clock-9.6mhz
   cfg-lcd-timings
   \ config sync signals and polarities in LTDC_GCR if needed
-  BLACK lcd-background-color!
+  BLACK_RGB lcd-background-color!
   \ config interrupts if needed
   cfg-lcd-layer1
   lcd-layer1-on
