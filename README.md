@@ -32,10 +32,10 @@ the STM32F7x6.svd file and generates memmap.fs and bitfields.fs.
 
 These files provide constants for register addresses and words for each bitfield
 within those registers. gen-cmsis only generates code for registers listed in
-registers.txt. The bitfield words are very simple and just put a triplet of
-bitfield bit offset, bit width, and register address on the stack.  Words
-defined in common.fs are used to manipulate the bitfields based on these
-triplets.
+registers.txt. The bitfield words are very simple and just put a triplet of (1)
+register address offset from peripheral base address, (2) bitfield bit offset,
+and (3) bit width on the stack.  Words defined in common.fs are used to
+manipulate the bitfields based on these triplets.
 
 I think this strategy should be efficent in use as long as the words that
 manipulate the bitfield triplets and convert them to masks and addresses, etc.
@@ -59,17 +59,16 @@ installation to work.
 ## Example Usage
 
   \ print current value of the RCC_PLLCFGR_PLLN bitfield:
-  RCC_PLLCFGR_PLLN bf. 192  ok.
+  RCC PLLCFGR_PLLN bf. 192  ok.
   \ set RCC_PLLCFGR_PLLN bitfield to 216:
-   #216 RCC_PLLCFGR_PLLN bf!  ok.
+   #216 RCC PLLCFGR_PLLN bf!  ok.
   \ fetch the current value:
-  RCC_PLLCFGR_PLLN bf@  ok.
+  RCC PLLCFGR_PLLN bf@  ok.
   \ set all bits:
-  RCC_PLLCFGR_PLLN bfs!  ok.
+  RCC PLLCFGR_PLLN bfs!  ok.
   \ clear all bits:
-  RCC_PLLCFGR_PLLN bfc!  ok.
+  RCC PLLCFGR_PLLN bfc!  ok.
+  \ shift value into bitfield position and mask
+  #216 PLLCFGR_PLLN bf<<
 
 There are other variations available. See common.fs for details.
-
-## TODO
-* update this README with latest changes
