@@ -38,4 +38,10 @@ SYST $C + constant SYST_CALIB		\ SysTick calibration value register. Read Only, 
 : systick-hclk-use ( -- ) SYST CSR_CLKSOURCE bfs! ;
 : systick-rvr-set ( -- ) HCLK SYST RVR_RELOAD bf! ;
 : systick-enable ( -- ) SYST CSR_ENABLE bfs! ;
-: systick-cfg ( -- ) systick-hclk-use systick-rvr-set systick-enable ;
+: init-systick ( -- )
+   systick-hclk-use
+   systick-rvr-set
+   systick-enable
+  ['] systick-handler irq-systick !					\ This 'hooks' the systick-handler word (above) to the systick irq
+  systick-interrupt-enable
+;
