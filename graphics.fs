@@ -1,16 +1,8 @@
-#require lcd.fs
+#require graphics-rk043fn48h.fs
 #require graphics-text.fs
+#require graphics-geometry.fs
 
-\ -------------------------------------------------------------
-\  Bresenham line
-\ -------------------------------------------------------------
-
-0 variable line-x1   0 variable line-y1
-0 variable line-sx   0 variable line-sy
-0 variable line-dx   0 variable line-dy
-0 variable line-err
-
-: line ( x0 y0 x1 y1 -- )
+: line ( x0 y0 x1 y1 -- )		\ Bresenham line
 
   line-y1 ! line-x1 !
 
@@ -29,31 +21,7 @@
   2drop
 ;
 
-\ -------------------------------------------------------------
-\  Bresenham ellipse
-\ -------------------------------------------------------------
-
-0 variable ellipse-xm   0 variable ellipse-ym
-0 variable ellipse-dx   0 variable ellipse-dy
-0 variable ellipse-a    0 variable ellipse-b
-0 variable ellipse-a^2  0 variable ellipse-b^2
-0 variable ellipse-err
-
-: ellipse-putpixel ( y x -- ) ellipse-xm @ + swap ellipse-ym @ + putpixel ;
-
-: ellipse-step ( -- )
-    ellipse-dy @        ellipse-dx @        ellipse-putpixel
-    ellipse-dy @ negate ellipse-dx @        ellipse-putpixel
-    ellipse-dy @ negate ellipse-dx @ negate ellipse-putpixel
-    ellipse-dy @        ellipse-dx @ negate ellipse-putpixel
-
-    ellipse-err @ 2* >r
-    r@  ellipse-dx @ 2* 1+ ellipse-b^2 @ *        < if  1 ellipse-dx +! ellipse-dx @ 2* 1+ ellipse-b^2 @ *        ellipse-err +! then
-    r>  ellipse-dy @ 2* 1- ellipse-a^2 @ * negate > if -1 ellipse-dy +! ellipse-dy @ 2* 1- ellipse-a^2 @ * negate ellipse-err +! then
-;
-
-
-: ellipse ( xm ym a b -- )
+: ellipse ( xm ym a b -- )		\ Bresenham ellipse
 
   0 ellipse-dx ! dup ellipse-dy !
 
@@ -105,3 +73,5 @@
   repeat
   2drop
 ;
+
+: init-graphics ( -- ) init-rk043fn48h ;

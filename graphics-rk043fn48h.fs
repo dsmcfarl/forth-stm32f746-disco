@@ -141,7 +141,7 @@ $0 constant BLACK
 
 : enable-lcd-controller ( -- ) LTDC GCR_LTDCEN bfs! ;
 
-: lcd-init  ( -- )
+: init-rk043fn48h ( -- )
   cfg-lcd-gpio
   lcd-disp-on
   lcd-backlight-on
