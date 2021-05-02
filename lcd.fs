@@ -45,7 +45,7 @@
   RK043FN48H_VBP + RK043FN48H_VFP + 1- LTDC TWCR_TOTALH bf!			\ total height
 ;
 
-: lcd-background-color! ( r g b -- ) BCCR_BCBLUE bf<< swap BCCR_BCGREEN bf<< or swap BCCR_BCRED bf<< or LTDC_BCCR ! ;
+: lcd-background-color! ( rgb -- ) $ffffff and LTDC_BCCR ! ;
 
 : af14-fast! ( port pin -- ) 2dup AF -rot moder! 2dup HIGH -rot ospeedr! AF14 -rot afr! ;
 : cfg-lcd-gpio ( -- )
@@ -115,8 +115,8 @@ LCD_FB1_SIZE#				variable LCD_FB1_SIZE         \ frame buffer 1 size
     add-lcd-layer1-color-map-entry
   loop
 ;
-: BLACK_ARGB ( -- a r g b ) $0 $0 $0 $0 ;
-: lcd-layer1-default-color! ( a r g b -- ) L1DCCR_DCBLUE bf<< swap L1DCCR_DCGREEN bf<< or swap L1DCCR_DCRED bf<< or swap L1DCCR_DCALPHA bf<< or LTDC_L1DCCR ! ;
+$0 constant BLACK
+: lcd-layer1-default-color! ( argb -- ) LTDC_L1DCCR ! ;
 : cfg-lcd-layer1 ( -- )
   L1_H_START L1_H_END lcd-layer1-h-pos!
   L1_V_START L1_V_END lcd-layer1-v-pos!
@@ -125,21 +125,21 @@ LCD_FB1_SIZE#				variable LCD_FB1_SIZE         \ frame buffer 1 size
   RK043FN48H_WIDTH lcd-layer1-fb-line-length!
   RK043FN48H_HEIGHT lcd-layer1-num-lines!
   create-lcd-layer1-color-map-8-8-4
-  BLACK_ARGB lcd-layer1-default-color!
+  BLACK lcd-layer1-default-color!
   \ config blending factors if needed
 ;
 
 : lcd-layer1-on  ( -- ) L1CR_CLUTEN bfm L1CR_LEN bfm or LTDC_L1CR bis! ;
 
 \ All of the layer1 and layer2 registers except the LTDC_LxCLUTWR register are
-\ shadowed. If writing to more than one bitfield in separate ops you have to
-\ update the shadow registers in between for shadowed registers. In this case,
-\ prefer to write the whole register at once.
+\ shadowed. Reading from the register shows the active value. 
+\ You have to do update-lcd-shadow-registers for changes to take
+\ effect. If writing to more than one bitfield in separate ops you have to update
+\ the shadow registers in between for shadowed registers. In this case, prefer to
+\ write the whole register at once.
 : update-lcd-shadow-registers ( -- ) LTDC SRCR_IMR bfs! ;
 
 : enable-lcd-controller ( -- ) LTDC GCR_LTDCEN bfs! ;
-
-: BLACK_RGB ( -- r g b ) $0 $0 $0 ;
 
 : lcd-init  ( -- )
   cfg-lcd-gpio
@@ -149,7 +149,7 @@ LCD_FB1_SIZE#				variable LCD_FB1_SIZE         \ frame buffer 1 size
   cfg-pixel-clock-9.6mhz
   cfg-lcd-timings
   \ config sync signals and polarities in LTDC_GCR if needed
-  BLACK_RGB lcd-background-color!
+  BLACK lcd-background-color!
   \ config interrupts if needed
   cfg-lcd-layer1
   lcd-layer1-on
@@ -159,6 +159,10 @@ LCD_FB1_SIZE#				variable LCD_FB1_SIZE         \ frame buffer 1 size
 ;
 
 : lcd-layer1-fb-adr@  ( a -- ) LTDC L1CFBAR_CFBADD bf@ ;
+: lcd-backlight-off  ( -- ) GPIOK #3 br! ;
+: lcd-disp-off  ( -- ) GPIOI #12 br! ;
+: lcd-layer1-off  ( -- ) $0 LTDC_L1CR ! ;
+
 : show-test-pattern ( -- )
   lcd-layer1-fb-adr@
   RK043FN48H_HEIGHT 0 do
@@ -175,16 +179,14 @@ LCD_FB1_SIZE#				variable LCD_FB1_SIZE         \ frame buffer 1 size
   drop
 ;
 
-: lcd-backlight-off  ( -- ) GPIOK #3 br! ;
-: lcd-disp-off  ( -- ) GPIOI #12 br! ;
-\ : lcd-layer1-off  ( -- ) $0 LTDC_L1CR ! ;
-\ : lcd-layer1-key-color! ( r g b -- )    \ set layer color keying color
-\   LTDC L1CKCR_CKBLUE bf!
-\   LTDC L1CKCR_CKGREEN bf!
-\   LTDC L1CKCR_CKRED bf!
-\ ;
-\ : lcd-layer-colormap-gray-scale ( layer -- ) \ grayscale colormap quick n dirty
-\   #256 0 do
-\     i i i rgb>color i add-lcd-layer1-color-map-entry
-\   loop
-\ ;
+: clear ( -- )                           \ fill with 0
+  lcd-layer1-fb-adr@ dup RK043FN48H_HEIGHT RK043FN48H_WIDTH * + swap do 0 i ! #4 +loop
+;
+0 variable LAYER1_COLOR
+: color! ( c -- ) $ff and LAYER1_COLOR ! ;
+: y-limit ( y -- y ) 0 max RK043FN48H_HEIGHT 1- min ;    
+: x-limit ( y -- y ) 0 max RK043FN48H_WIDTH 1- min ;    
+: putpixel ( x y -- )                       \ draw pixel with current color
+  LAYER1_COLOR @ swap y-limit RK043FN48H_WIDTH *
+  rot x-limit + lcd-layer1-fb-adr@ + c!
+;
