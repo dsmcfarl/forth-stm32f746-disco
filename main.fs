@@ -1,10 +1,10 @@
 compiletoflash
 
 #require clock.fs
-cfg-sysclk
+init-sysclk
 
 #require debug.fs
-mco1-cfg
+init-mco1
 
 #require systick.fs
 init-systick
@@ -13,24 +13,25 @@ compiletoram
 
 #require graphics.fs
 init-graphics
-clear
 
-: hello-world ( -- )
-  s" hello world!" 10 40 drawstring
-  s" ÄÖÜß" 10 60 drawstring
-;
-
-: demo-mecrisp ( -- )
-  180 color!
+: demo-graphics ( -- )
+  red1 color!
   50 14 32 12 ellipse
   50 14 34 14 ellipse
-  232 color!
-  font-8x16 font!
+  lightgreen color!
+  8x16 font!
   s" Mecrisp" 22 7 drawstring
+  yellow1 color!
   2 4 12 24 line
   4 4 14 24 line
-  150 color!
-  font-4x6 font!
-  s" 123456789012345678901234567890123456789012345678901234567890" 0 20 drawstring
+  118 color!
+  4x6 font!
+  s" 123456789012345678901234567890123456789012345678901234567890" 0 80 drawstring
+  8x16 font!
+  gold3 color!
+  s" hello world!" 10 40 drawstring
+  orange1 color!
+  s" ÄÖÜß" 10 60 drawstring
+
 ;
-demo-mecrisp
+demo-graphics

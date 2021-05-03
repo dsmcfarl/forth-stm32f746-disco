@@ -1,0 +1,49 @@
+#!/usr/bin/python3
+import json
+import os
+import math
+
+COLOR_FILE = 'x11-256-colors.json'
+COLORMAP_FILE = 'colormap.fs'
+COLORS_FILE = 'colors.fs'
+COMMENT_COLUMN = 41
+
+
+def try_unlink(f):
+    try:
+        os.unlink(f)
+    except FileNotFoundError:
+        pass
+
+
+def pad_tabs(s, n):
+    l = len(s)
+    ts = math.ceil((n - l) / 8)
+    ts = '\t' * max(1, ts)  # always at least one
+    return f'{s}{ts}'
+
+
+def print_color(c, cmf, cf):
+    s = f'${c["colorId"]:02x}{c["rgb"]["r"]:02x}{c["rgb"]["g"]:02x}{c["rgb"]["b"]:02x} ,'
+    s = pad_tabs(s, COMMENT_COLUMN)
+    print(f'{s}\\ {c["name"]}', file=cmf)
+    print(f'#{c["colorId"]} constant {c["name"]}', file=cf)
+
+def main():
+    with open(COLOR_FILE, 'r') as f:
+        json_str = f.read()
+    colors = json.loads(json_str)
+    try_unlink(COLORMAP_FILE)
+    try_unlink(COLORS_FILE)
+
+    with open(COLORMAP_FILE, 'a') as cmf, open(COLORS_FILE, 'a') as cf:
+        print('\ X11 colors from:  https://jonasjacek.github.io/colors/', file=cmf)
+        print('\ X11 colors from:  https://jonasjacek.github.io/colors/', file=cf)
+        print('create colormap', file=cmf)
+        for color in colors:
+            print_color(color, cmf, cf)
+        print('align', file=cmf)
+
+
+if __name__ == '__main__':
+    main()

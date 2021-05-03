@@ -3,7 +3,7 @@
 \  https://robey.lag.net/2010/01/23/tiny-monospace-font.html
 \ -------------------------------------------------------------
 
-create font-4x6
+create 4x6
 
 \ Unicode point, Bitmap Data
 
@@ -223,7 +223,7 @@ align
 \  http://v3.sk/~lkundrak/fonts/freebsd/fonts/iso15-8x16
 \ -------------------------------------------------------------
 
-create font-8x16
+create 8x16
 
 \ Unicode point, Bitmap Data                                               \ ISO8859-1, Name
 

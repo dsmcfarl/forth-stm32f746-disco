@@ -1,4 +1,6 @@
 #require gpio.fs
+#require colormap.fs
+#require colors.fs
 
 \ RK043FN48H-CT672B datasheet defines back porch differently than ST. ST back
 \ porch does not include HSYNC or VSYNC. All timings in pixel clock cycles.
@@ -105,17 +107,26 @@ LCD_FB1_SIZE#				variable LCD_FB1_SIZE         \ frame buffer 1 size
 : red-884 ( i -- c ) $e0 and #5 rshift #255 * #3 + #7 / ;
 : green-884 ( i -- c ) $1C and #2 rshift #255 * #3 + #7 / ;
 : blue-884 ( i -- c ) $3 and #255 * 1 + 3 / ;
-: add-lcd-layer1-color-map-entry ( r g b i -- ) L1CLUTWR_CLUTADD bf<< swap L1CLUTWR_BLUE bf<< or swap L1CLUTWR_GREEN bf<< or swap L1CLUTWR_RED bf<< or LTDC_L1CLUTWR ! ;
+\ : add-lcd-layer1-color-map-entry ( r g b i -- ) L1CLUTWR_CLUTADD bf<< swap L1CLUTWR_BLUE bf<< or swap L1CLUTWR_GREEN bf<< or swap L1CLUTWR_RED bf<< or LTDC_L1CLUTWR ! ;
+\ : create-lcd-layer1-color-map-8-8-4 ( -- )
+\   256 0 do
+\     i red-884
+\     i green-884
+\     i blue-884
+\     i
+\     add-lcd-layer1-color-map-entry
+\   loop
+\ ;
 : create-lcd-layer1-color-map-8-8-4 ( -- )
+  colormap
   256 0 do
-    i red-884
-    i green-884
-    i blue-884
-    i
-    add-lcd-layer1-color-map-entry
+    dup @ LTDC_L1CLUTWR !
+    4 +
   loop
+  drop
 ;
-$0 constant BLACK
+    
+$0 constant BLACK_RGB
 : lcd-layer1-default-color! ( argb -- ) LTDC_L1DCCR ! ;
 : cfg-lcd-layer1 ( -- )
   L1_H_START L1_H_END lcd-layer1-h-pos!
@@ -125,7 +136,7 @@ $0 constant BLACK
   RK043FN48H_WIDTH lcd-layer1-fb-line-length!
   RK043FN48H_HEIGHT lcd-layer1-num-lines!
   create-lcd-layer1-color-map-8-8-4
-  BLACK lcd-layer1-default-color!
+  BLACK_RGB lcd-layer1-default-color!
   \ config blending factors if needed
 ;
 
@@ -141,24 +152,31 @@ $0 constant BLACK
 
 : enable-lcd-controller ( -- ) LTDC GCR_LTDCEN bfs! ;
 
+: lcd-layer1-fb-adr@  ( a -- ) LTDC L1CFBAR_CFBADD bf@ ;
+
+: clear-layer1 ( -- )                           \ fill with 0
+  lcd-layer1-fb-adr@ dup RK043FN48H_HEIGHT RK043FN48H_WIDTH * + swap do 0 i ! #4 +loop
+;
+
 : init-rk043fn48h ( -- )
   cfg-lcd-gpio
   lcd-disp-on
-  lcd-backlight-on
   enable-lcd-controller-clock
   cfg-pixel-clock-9.6mhz
   cfg-lcd-timings
   \ config sync signals and polarities in LTDC_GCR if needed
-  BLACK lcd-background-color!
+  BLACK_RGB lcd-background-color!
   \ config interrupts if needed
   cfg-lcd-layer1
   lcd-layer1-on
   \ enable dithering and color keying if needed
   update-lcd-shadow-registers
   enable-lcd-controller
+  clear-layer1
+  2000000 0 do nop loop			\ delay to let display black-out before turning on backlight to prevent flash
+  lcd-backlight-on
 ;
 
-: lcd-layer1-fb-adr@  ( a -- ) LTDC L1CFBAR_CFBADD bf@ ;
 : lcd-backlight-off  ( -- ) GPIOK #3 br! ;
 : lcd-disp-off  ( -- ) GPIOI #12 br! ;
 : lcd-layer1-off  ( -- ) $0 LTDC_L1CR ! ;
@@ -179,11 +197,7 @@ $0 constant BLACK
   drop
 ;
 
-: clear ( -- )                           \ fill with 0
-  lcd-layer1-fb-adr@ dup RK043FN48H_HEIGHT RK043FN48H_WIDTH * + swap do 0 i ! #4 +loop
-;
 0 variable LAYER1_COLOR
-: color! ( c -- ) $ff and LAYER1_COLOR ! ;
 : y-limit ( y -- y ) 0 max RK043FN48H_HEIGHT 1- min ;    
 : x-limit ( y -- y ) 0 max RK043FN48H_WIDTH 1- min ;    
 : putpixel ( x y -- )                       \ draw pixel with current color

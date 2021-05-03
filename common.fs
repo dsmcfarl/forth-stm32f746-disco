@@ -59,3 +59,4 @@
 \ effect of changing the base for future words
 : h. base @ >R hex . R> base ! ;	\ print in hex
 : b. base @ >R binary . R> base ! ;	\ print in binary
+: hu. base @ >R hex u. R> base ! ;	\ print in hex, unsigned

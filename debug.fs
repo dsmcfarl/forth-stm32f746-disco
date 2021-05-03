@@ -5,7 +5,7 @@
 #require gpio.fs
 
 \ configure PLL/5 clock output to pin PA8 via MCO1 (useful for testing clock setup)
-: mco1-cfg ( -- )
+: init-mco1 ( -- )
   RCC APB2ENR_TIM11EN bfs!		\ enable TIM11
   TIM11 OR_TI1_RMP bfs!			\ remap MCO1 to TIM11 input
   RCC CFGR_MCO1 bfs!			\ send PLL clock to MCO1
