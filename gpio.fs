@@ -27,6 +27,8 @@
 %01 constant MED
 %10 constant HIGH
 %11 constant VERY_HIGH
+%0 constant PUSH_PULL
+%1 constant OPEN_DRAIN
 
 MODER_MODER0
   constant MODER_WIDTH
@@ -48,6 +50,17 @@ OSPEEDR_OSPEEDR0
   OSPEEDR_PIN0_OFFSET +
   OSPEEDR_WIDTH
   OSPEEDR_OFFSET -rot
+  bf!
+;
+OTYPER_OT0
+  constant OTYPER_WIDTH
+  constant OTYPER_PIN0_OFFSET
+  constant OTYPER_OFFSET
+: otyper! ( speed port pin -- )
+  OTYPER_WIDTH *
+  OTYPER_PIN0_OFFSET +
+  OTYPER_WIDTH
+  OTYPER_OFFSET -rot
   bf!
 ;
 AFRL_AFRL0
