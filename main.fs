@@ -1,16 +1,15 @@
 compiletoflash
-
 #require clock.fs
-init-sysclk
-
 #require debug.fs
-init-mco1
-
 #require systick.fs
-init-systick
+#require graphics.fs
 compiletoram
 
-#require graphics.fs
+\ if we init-sysclk before #require graphics.fs, the font arrays do not get
+\ initialized (all zeros) when graphics.fs is compiled to flash
+init-sysclk
+init-mco1
+init-systick
 init-graphics
 
 : demo-graphics ( -- )
