@@ -23,7 +23,7 @@
 : wait-pllsai-rdy ( -- ) begin RCC CR_PLLSAIRDY bf@ until ;
 : pllsain! ( %bbbbbbbbb -- ) RCC PLLSAICFGR_PLLSAIN bf! ;
 : pllsair! ( %bbb -- ) RCC PLLSAICFGR_PLLSAIR bf! ;
-: pllsaidivr! ( %bb -- ) RCC DKCFGR1_PLLSAIDIVR bf! ;
+: pllsaidivr! ( %bb -- ) RCC DCKCFGR1_PLLSAIDIVR bf! ;
 : cfg-pixel-clock-9.6mhz ( -- )		\ pll-input frequency must be 1 MHz
   pllsai-off
   \ 192 / 5 / 4 = 9.6 MHz

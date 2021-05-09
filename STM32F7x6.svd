@@ -11158,8 +11158,8 @@
                </fields>
             </register>
             <register>
-               <name>DKCFGR1</name>
-               <displayName>DKCFGR1</displayName>
+               <name>DCKCFGR1</name>
+               <displayName>DCKCFGR1</displayName>
                <description>dedicated clocks configuration           register</description>
                <addressOffset>0x8C</addressOffset>
                <size>0x20</size>
@@ -11205,8 +11205,8 @@
                </fields>
             </register>
             <register>
-               <name>DKCFGR2</name>
-               <displayName>DKCFGR2</displayName>
+               <name>DCKCFGR2</name>
+               <displayName>DCKCFGR2</displayName>
                <description>dedicated clocks configuration           register</description>
                <addressOffset>0x90</addressOffset>
                <size>0x20</size>
@@ -12767,8 +12767,8 @@
                </fields>
             </register>
             <register>
-               <name>GPIOB_OSPEEDR</name>
-               <displayName>GPIOB_OSPEEDR</displayName>
+               <name>OSPEEDR</name>
+               <displayName>OSPEEDR</displayName>
                <description>GPIO port output speed           register</description>
                <addressOffset>0x8</addressOffset>
                <size>0x20</size>

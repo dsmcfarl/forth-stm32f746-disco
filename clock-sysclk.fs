@@ -76,7 +76,7 @@ HSE_CLK_HZ #1000000 / constant PLLM_VAL	\ division factor for main PLLs input cl
 : set-sysclk-src-to-pll ( -- ) RCC CFGR_SW0 bfc! RCC CFGR_SW1 bfs! ;
 
 %10 constant HSI
-: usart1-clk-src! ( %bb -- ) RCC DKCFGR2_USART1SEL bf! ;
+: usart1-clk-src! ( %bb -- ) RCC DCKCFGR2_USART1SEL bf! ;
 : baud-rate-for-16x-oversampling ( -- u ) #115200 HSI_CLK_HZ over 2/ + swap / ;
 : cfg-usart1 ( -- )
   HSI usart1-clk-src!
