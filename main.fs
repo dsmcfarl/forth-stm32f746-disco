@@ -33,7 +33,6 @@ init-graphics
 
 ;
 demo-graphics
-: wait ( ms -- ) ms @ + begin dup ms @ <= until ;
 #require i2c.fs
 i2c1-init
 $37 constant SENTRAL_STATUS
@@ -54,7 +53,7 @@ $9B constant SENTRAL_RESET_REQUEST
 ;
 : read-byte ( reg -- val )
   write-reg
-  500 wait
+  500 delay
   BUF SENTRAL_ADDR 1 i2c1-read
   h.
   BUF c@

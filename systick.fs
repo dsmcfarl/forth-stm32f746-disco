@@ -31,10 +31,10 @@ SYST $C + constant SYST_CALIB		\ SysTick calibration value register. Read Only, 
 : CALIB_SKEW ( -- addr-offset bit-offset width ) $C #30 #1 ;		\ (read-only) Indicates whether the 10ms calibration value is exact 
 : CALIB_TENMS ( -- addr-offset bit-offset width ) $C #0 #24 ;		\ (read-only) Optionally, holds a reload value to be used for 10ms (100Hz) timing 
 
-0 variable MS				\ can count to 32 bits or -> $ffffffff u. =  4294967295 mS or 4294967 seconds, or 71582 minutes or 1193 hours.
+0 0 2variable MS				\ can count to 64 bits or (2^64 - 1) miliseconds =  584,942,417 years
 
 : systick-interrupt-enable ( -- ) SYST CSR_TICKINT bfs! ;
-: systick-handler ( -- ) MS @ 1+ MS ! ;
+: systick-handler ( -- ) MS 2@ 1. d+ MS 2! ;
 : systick-hclk-use ( -- ) SYST CSR_CLKSOURCE bfs! ;
 : systick-rvr-set ( -- ) HCLK SYST RVR_RELOAD bf! ;
 : systick-enable ( -- ) SYST CSR_ENABLE bfs! ;
@@ -45,3 +45,4 @@ SYST $C + constant SYST_CALIB		\ SysTick calibration value register. Read Only, 
   ['] systick-handler irq-systick !					\ This 'hooks' the systick-handler word (above) to the systick irq
   systick-interrupt-enable
 ;
+: delay ( ms -- ) s>d MS 2@ d+ begin 2dup MS 2@ d= until 2drop ;
