@@ -1,5 +1,6 @@
 \ I2C1 driver for master send and receive, 7 bit addressing, 400KHz.
 
+#require log.fs
 
 \ Wait while the word test with address 'test results in a true, or until
 \ timeout ends.  Returns false if 'test execute returns false before timeout,
@@ -52,36 +53,37 @@ $ffff constant TIMEOUT
 : i2c1-txdr-not-empty? ( -- flag ) I2C1 ISR_TXIS bf@ 0= ;
 : i2c1-stop-flag-not-set? ( -- flag) I2C1 ISR_STOPF bf@ 0= ;
 
-: log.debug ( c-addr length -- )
-  cr cr ." DEBUG: " type
-;
 : timed-out-waiting-for-i2c1? ( -- flag ) ['] i2c1-busy? true-until-timeout? ;
-: i2c1-read ( buf-addr slave-addr nbytes -- flag )
+: prepare-read ( slave-addr nbytes -- nbytes )
+  swap over
+  CR2_NBYTES bf<<
+  swap #1 lshift		\ in 7-bit mode, slave addr starts at bit1 not 0
+  CR2_SADD bf<< or
+  $1 CR2_AUTOEND bf<< or	\ auto end mode	
+  $1 CR2_RD_WRN bf<< or		\ master read request
+  $1 CR2_START bf<< or		\ Start transfer
+  I2C1_CR2 !
+;
+: timed-out-waiting-for-i2c1-rxdr-not-empty? ( -- ) ['] i2c1-rxdr-empty? true-until-timeout? ;
+#0 constant STATUS_OK
+#1 constant STATUS_BUSY
+#2 constant STATUS_RXDR_EMPTY
+: save-rxdr-to-addr ( addr -- ) I2C1_RXDR c@ swap c! ;
+: i2c1-read ( buf-addr slave-addr nbytes -- status )
   timed-out-waiting-for-i2c1? if
-    2drop drop 
     s" i2c1-read: bus is busy timeout" log.debug
-    true exit
+    2drop drop STATUS_BUSY exit
   then
-  \ Prepare for transfer
-  $0 I2C1_CR2 !                 \ Clear register
-  swap over 16 lshift swap 1 lshift or        \ Slave address (consumed) and num bytes
-  %1 25 lshift or               \ Auto end mode
-  %1 10 lshift or               \ Master read
-  %1 13 lshift or I2C1_CR2 !    \ Start transfer
-
-  0 do  \ nbyte consumed, only buf-addr remains
-    \ Wait until rx buffer has data
-    ['] i2c1-rxdr-empty? true-until-timeout? if
-      drop 
-      cr cr ." DEBUG: i2c1-read: rx buffer empty timeout" cr
-      2 unloop exit
+  prepare-read
+  0 do
+    timed-out-waiting-for-i2c1-rxdr-not-empty? if
+      s" i2c1-read: timed out waiting for RXDR not empty" log.debug
+      drop STATUS_RXDR_EMPTY unloop exit
     then
-    \ Receive next byte of data
-    dup i + I2C1_RXDR c@ swap c!
+    dup i + 
+    save-rxdr-to-addr
   loop
-  drop    \ Drop buf-addr
-  
-  0   \ No error exit status
+  drop STATUS_OK
 ;
 
 : i2c1-write ( buf-addr slave-addr nbytes -- status )
