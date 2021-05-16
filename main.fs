@@ -35,4 +35,3 @@ init-graphics
 demo-graphics
 #require sentral.fs
 init-sentral
-sentral_status read-byte-from-sentral-reg h.
