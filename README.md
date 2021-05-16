@@ -72,3 +72,16 @@ installation to work.
   #216 PLLCFGR_PLLN bf<<
 
 There are other variations available. See common.fs for details.
+
+## Style
+* Constants, variables, and buffers must be captialized, underscore separated. 
+* Prefix words that are only used in the local file with an underscore, I refer
+  to these as "local words".
+* Local words do not have to be globally unique as the most recently defined
+  version of the word at the time it is used in a definition will be used even
+  if it is redefined later.
+* Local words can be shorter since their use should be obvious from local
+  context.
+* Prefer longer words to comments. i.e., if making a word longer will eliminate
+  the need for a comment explaining the meaning of the word, then make it
+  longer.
