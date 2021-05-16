@@ -33,33 +33,6 @@ init-graphics
 
 ;
 demo-graphics
-#require i2c.fs
-i2c1-init
-$37 constant SENTRAL_STATUS
-$28 constant SENTRAL_ADDR
-$9B constant SENTRAL_RESET_REQUEST
-6 buffer: BUF
-
-: write-reg ( reg -- )
-  BUF c!
-  BUF SENTRAL_ADDR 1 i2c1-write
-  h.
-;
-: write-reg-val ( val reg -- )
-  BUF c!
-  BUF #1 + c!
-  BUF SENTRAL_ADDR 2 i2c1-write
-  h.
-;
-: read-byte ( reg -- val )
-  write-reg
-  500 delay
-  BUF SENTRAL_ADDR 1 i2c1-read
-  h.
-  BUF c@
-;
-: reset-request ( -- )
-  $1 SENTRAL_RESET_REQUEST write-reg-val
-;
-sentral_status read-byte
-h.
+#require sentral.fs
+init-sentral
+sentral_status read-byte-from-sentral-reg h.

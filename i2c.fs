@@ -37,7 +37,7 @@ $ffff constant TIMEOUT
   $0 TIMINGR_PRESC bf<< or I2C1_TIMINGR !	\ tPRESC = (PRESC+1) x tI2CCLK
 ;
 : enable-i2c1 ( -- ) I2C1 CR1_PE bfs! ;
-: i2c1-init ( -- )
+: init-i2c1 ( -- )
   GPIOB 8 init-i2c-gpio-pin
   GPIOB 9 init-i2c-gpio-pin
   enable-i2c1-clock
@@ -54,7 +54,7 @@ $ffff constant TIMEOUT
 : i2c1-stop-flag-not-set? ( -- flag) I2C1 ISR_STOPF bf@ 0= ;
 
 : timed-out-waiting-for-i2c1? ( -- flag ) ['] i2c1-busy? true-until-timeout? ;
-: prepare-read ( slave-addr nbytes -- nbytes )
+: prepare-i2c1-read ( slave-addr nbytes -- nbytes )
   swap over
   CR2_NBYTES bf<<
   swap #1 lshift		\ in 7-bit mode, slave addr starts at bit1 not 0
@@ -64,20 +64,23 @@ $ffff constant TIMEOUT
   $1 CR2_START bf<< or		\ Start transfer
   I2C1_CR2 !
 ;
-: timed-out-waiting-for-i2c1-rxdr-not-empty? ( -- ) ['] i2c1-rxdr-empty? true-until-timeout? ;
+: timed-out-waiting-for-i2c1-rxdr-not-empty? ( -- flag ) ['] i2c1-rxdr-empty? true-until-timeout? ;
 #0 constant STATUS_OK
 #1 constant STATUS_BUSY
 #2 constant STATUS_RXDR_EMPTY
+#3 constant STATUS_TXDR_NOT_EMPTY
+#4 constant STATUS_NO_STOP
+#5 constant STATUS_NACK
 : save-rxdr-to-addr ( addr -- ) I2C1_RXDR c@ swap c! ;
 : i2c1-read ( buf-addr slave-addr nbytes -- status )
   timed-out-waiting-for-i2c1? if
-    s" i2c1-read: bus is busy timeout" log.debug
+    s" i2c1-read: bus is busy timeout" log.warning
     2drop drop STATUS_BUSY exit
   then
-  prepare-read
+  prepare-i2c1-read
   0 do
     timed-out-waiting-for-i2c1-rxdr-not-empty? if
-      s" i2c1-read: timed out waiting for RXDR not empty" log.debug
+      s" i2c1-read: timed out waiting for RXDR not empty" log.warning
       drop STATUS_RXDR_EMPTY unloop exit
     then
     dup i + 
@@ -86,20 +89,7 @@ $ffff constant TIMEOUT
   drop STATUS_OK
 ;
 
-: i2c1-write ( buf-addr slave-addr nbytes -- status )
-
-  \ If nbytes = 0, nothing to do
-  dup 0= if 
-    2drop drop 0 exit
-  then
-  
-  ['] i2c1-busy? true-until-timeout? if
-    2drop drop 
-    cr cr ." DEBUG: i2c1-write: bus is busy timeout" cr
-    1 exit
-  then
-  
-  \ Prepare for transfer
+: prepare-i2c1-write ( slave-addr nbytes -- nbytes )
   swap over
   CR2_NBYTES bf<<
   swap #1 lshift		\ in 7-bit mode, slave addr starts at bit1 not 0
@@ -107,33 +97,43 @@ $ffff constant TIMEOUT
   $1 CR2_AUTOEND bf<< or	\ auto end mode	
   $1 CR2_START bf<< or		\ Start transfer
   I2C1_CR2 !
-  I2C1 ISR_TXIS bfs!
-  0 do  \ nbyte consumed, only buf-addr remains
-    \ Wait until tx buffer is empty
-    ['] i2c1-txdr-not-empty? true-until-timeout? if
-      drop 
-      cr cr ." DEBUG: i2c1-write: tx buffer not empty timeout" cr
-      2 unloop exit
+;
+: timed-out-waiting-for-i2c1-txdr-empty? ( -- flag ) ['] i2c1-txdr-not-empty? true-until-timeout? ;
+: write-from-addr-to-txdr ( addr -- ) c@ I2C1_TXDR c! ;
+: i2c1-slave-nack? ( -- flag ) I2C1 ISR_NACKF bf@ ;
+: timed-out-waiting-for-i2c1-stop-flag? ( -- flag ) ['] i2c1-stop-flag-not-set? true-until-timeout? ;
+: clear-i2c1-stop-flag ( -- ) I2C1 ICR_STOPCF bfs! ;
+: i2c1-write ( buf-addr slave-addr nbytes -- status )
+  dup 0= if 
+    s" i2c1-write: nbytes=0" log.debug
+    2drop drop STATUS_OK exit
+  then
+  timed-out-waiting-for-i2c1? if
+    s" i2c1-write: bus is busy" log.warning
+    2drop drop STATUS_BUSY exit
+  then
+  prepare-i2c1-write
+  0 do
+    timed-out-waiting-for-i2c1-txdr-empty? if
+      s" i2c1-write: timed out waiting for TXDR empty" log.warning
+      drop STATUS_TXDR_NOT_EMPTY unloop exit
     then
-    \ Send next byte of data
-    dup i + c@ I2C1_TXDR c!
-    \ Stop transfer if data byte is not acknowledged by slave
-    %1 4 lshift I2C1_ISR @ and if
-      cr cr ." DEBUG: i2c1-write: tx stopped early, slave NACK" cr
+    dup i +
+    write-from-addr-to-txdr
+    i2c1-slave-nack? if
+      s" i2c1-write: tx stopped early, slave NACK" log.warning
       leave
     then
   loop
-  drop    \ Drop buf-addr
-
-  ['] i2c1-stop-flag-not-set? true-until-timeout? if
-    cr cr ." DEBUG: i2c1-write: no stop generated timeout" cr
-    3 exit
+  drop
+  timed-out-waiting-for-i2c1-stop-flag? if
+    s" i2c1-write: timed out waiting for stop flag" log.warning
+    STATUS_NO_STOP exit
   then
-  %1 5 lshift I2C1_ICR bis!   \ Clear stop flag
-  %1 4 lshift I2C1_ISR @ and if   \ NACK received from slave?
-    cr cr ." DEBUG: i2c1-write: NACK at end of transfer" cr
-    4 exit
+  clear-i2c1-stop-flag
+  i2c1-slave-nack? if
+    s" i2c1-write: NACK at end of transfer" log.warning
+    STATUS_NACK exit
   then
-
-  0   \ No error exit status
+  STATUS_OK
 ;
