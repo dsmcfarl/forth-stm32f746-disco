@@ -73,8 +73,18 @@ installation to work.
 
 There are other variations available. See common.fs for details.
 
-## Style
-* Constants, variables, and buffers must be captialized, underscore separated. 
+## Style Rules
+I don't follow this strictly as it is still evolving since I do not have too
+much experience with Forth. I do think some kind of consistent style is critical
+to a project of non-trivial complexity since Forth is naturally so unstructured
+and flexible:
+
+* Constants, variables, and buffers must be captialized, underscore separated;
+  all other definitions must be lower case, dash separated. 
+* Word names should be chosen for readability. They may contain multiple english
+  words separated by "-". The order of the english words should be the order
+  they would normally be spoken. Avoid prefixes to group sets of words.
+  e.g., prefer "write-byte-to-i2c1" instead of "i2c1-write-byte".
 * Prefix words that are only used in the local file with an underscore, I refer
   to these as "local words".
 * Local words do not have to be globally unique as the most recently defined
@@ -85,3 +95,35 @@ There are other variations available. See common.fs for details.
 * Prefer longer words to comments. i.e., if making a word longer will eliminate
   the need for a comment explaining the meaning of the word, then make it
   longer.
+* Prefer defining short descriptive local words to adding comments at the end
+  of each line in a definition.
+* All words that fetch a value must be suffixed with a "@".
+* All word that store a value must be suffixed with a "!".
+* Use "$", "%", and "#" to prefix all literal numbers except 0 to avoid amiguity
+  about base.
+* Dinstinct functionality should be split into separate files.
+* Each file must have a comment at the top explaining the purpose of the file.
+* Source file namess must be suffixed with ".fs".
+* Use appropriate #require directives (e4thcom specific) at the top of any file
+  using words from other files.
+* When defining multiple constants, variables, etc. in a row, vertically align
+  the defining words (e.g., constant).
+* Vertically align inline comments whenever practical. Prefer starting the
+  comments at column 41.
+* Use tabs to line up inline comments because it makes them less sensitive to
+  minor adjustments.
+* Try to keep line lengths less than 80 columns, but don't sacrifice readability
+  just to keep it below 80; always keep them less than 120 columns.
+* Define local words directly above global words that use them with no blank
+  lines between definitions.
+* Put one blank line or EOF after each global definition and each "major" local
+  definition.
+* Short definitions (especially local words) should be on one line unless
+  splitting into multiple lines increases readability.
+* The first line of multi-line definitions must only have ":" followed by the
+  word name and a stack comment and it must not be indented.
+* The last line of a multi-line definition must only contain ";" and it must not
+  be indented.
+* All lines except the first and last of a multi-line definition must be
+  indented with two spaces.
+* TODO: stack comments
