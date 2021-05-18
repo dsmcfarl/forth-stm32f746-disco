@@ -143,8 +143,70 @@ SENTRAL_STATUS_EEPROM_DETECTED SENTRAL_STATUS_EE_UPLOAD_DONE or SENTRAL_STATUS_I
   _wait-until-in-pass-thru-state
 ;
 
+\  // Sentral I2C EEPROM
+\   #define M24512DFM_IDPAGE_ADDRESS              0x58
+\   uint8_t data[12];
+\   uint8_t axis;
+
+\   I2C->M24512DFMreadBytes(M24512DFM_DATA_ADDRESS, 0x80, 0x8c, 12, data);                                                                         // Page 257
+\   for (axis = 0; axis < 3; axis++)
+\   {
+\     global_conf.accZero_max[SensorNum][axis] = ((int16_t)(data[(2*axis + 1)]<<8) | data[2*axis]);
+\     global_conf.accZero_min[SensorNum][axis] = ((int16_t)(data[(2*axis + 7)]<<8) | data[(2*axis + 6)]);
+\   }
+
+
+
+$50 constant _M24512DFM_DATA_ADDRESS
+0 variable _ACCEL_X_MAX
+0 variable _ACCEL_X_MIN
+0 variable _ACCEL_Y_MAX
+0 variable _ACCEL_Y_MIN
+0 variable _ACCEL_Z_MAX
+0 variable _ACCEL_Z_MIN
+12 buffer: _EEPROM_BUF
+140 buffer: _WARM_START_DATA
+1 variable _WS_VALID
+: _signed-h@ ( buf-addr -- n) h@ dup %1000000000000000 and if $ffff0000 or then ;
+$80 constant _EEPROM_CAL_MEM_ADDR_MSB
+$8c constant _EEPROM_CAL_MEM_ADDR_LSB
+$80 constant _EEPROM_WS_MEM_ADDR_MSB
+$00 constant _EEPROM_WS_MEM_ADDR_LSB
+$80 constant _EEPROM_WS_VALID_MEM_ADDR_MSB
+$98 constant _EEPROM_WS_VALID_MEM_ADDR_LSB
+: _read-accel-cal-from-eeprom ( -- )
+  _EEPROM_CAL_MEM_ADDR_MSB _EEPROM_BUF c!
+  _EEPROM_CAL_MEM_ADDR_LSB _EEPROM_BUF 1 + c!
+  _EEPROM_BUF _M24512DFM_DATA_ADDRESS 2 i2c1-write
+  _EEPROM_BUF _M24512DFM_DATA_ADDRESS 12 i2c1-read
+;
+: _get-accel-cal ( -- )
+  _read-accel-cal-from-eeprom
+  _EEPROM_BUF _signed-h@ _ACCEL_X_MAX !
+  _EEPROM_BUF 2 + _signed-h@ _ACCEL_Y_MAX !
+  _EEPROM_BUF 4 + _signed-h@ _ACCEL_Z_MAX !
+  _EEPROM_BUF 6 + _signed-h@ _ACCEL_X_MIN !
+  _EEPROM_BUF 8 + _signed-h@ _ACCEL_Y_MIN !
+  _EEPROM_BUF 10 + _signed-h@ _ACCEL_Z_MIN !
+;
+: _get-warm-start-data ( -- )
+  _EEPROM_WS_MEM_ADDR_MSB _EEPROM_BUF c!
+  _EEPROM_WS_MEM_ADDR_LSB _EEPROM_BUF 1 + c!
+  _EEPROM_BUF _M24512DFM_DATA_ADDRESS 2 i2c1-write
+  _WARM_START_DATA _M24512DFM_DATA_ADDRESS 140 i2c1-read
+;
+: _get-warm-start-valid-byte ( -- )
+  _EEPROM_WS_VALID_MEM_ADDR_MSB _EEPROM_BUF c!
+  _EEPROM_WS_VALID_MEM_ADDR_LSB _EEPROM_BUF 1 + c!
+  _EEPROM_BUF _M24512DFM_DATA_ADDRESS 2 i2c1-write
+  _WS_VALID _M24512DFM_DATA_ADDRESS 1 i2c1-read
+;
+
 : init-sentral ( -- )
   init-i2c1
   _wait-ready
   _enter-pass-thru-state
+  _get-accel-cal
+  _get-warm-start-data
+  _get-warm-start-valid-byte
 ;
