@@ -58,6 +58,7 @@ installation to work.
 
 ## Example Usage
 
+<code><pre>
   \ print current value of the RCC_PLLCFGR_PLLN bitfield:
   RCC PLLCFGR_PLLN bf. 192  ok.
   \ set RCC_PLLCFGR_PLLN bitfield to 216:
@@ -70,6 +71,7 @@ installation to work.
   RCC PLLCFGR_PLLN bfc!  ok.
   \ shift value into bitfield position and mask
   #216 PLLCFGR_PLLN bf<<
+</pre></code>
 
 There are other variations available. See common.fs for details.
 
