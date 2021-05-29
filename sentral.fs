@@ -103,10 +103,14 @@ $10 constant SENTRAL_STATUS_NO_EEPROM
 \ TODO: check all i2c1-* call returns instead of dropping
 2 buffer: _BUF
 : _write-reg-to-sentral ( reg -- ) _BUF c! _BUF EM7180_ADDRESS 1 i2c1-write drop ;
-: _read-byte-from-sentral ( -- byte ) _BUF EM7180_ADDRESS 1 i2c1-read drop _BUF c@ ;
-: read-byte-from-sentral-reg ( reg -- byte )
+: read-bytes-from-sentral-reg-to-buf ( numbytes buf-addr reg -- )
   _write-reg-to-sentral
-  _read-byte-from-sentral
+  EM7180_ADDRESS rot i2c1-read drop
+;
+
+: read-byte-from-sentral-reg ( reg -- byte )
+  1 _BUF rot read-bytes-from-sentral-reg-to-buf
+  _BUF c@
 ;
 
 : write-byte-to-sentral-reg ( byte reg -- )
