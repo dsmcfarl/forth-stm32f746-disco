@@ -100,6 +100,7 @@ $4  constant SENTRAL_STATUS_EE_UPLOAD_ERROR
 $8  constant SENTRAL_STATUS_IDLE
 $10 constant SENTRAL_STATUS_NO_EEPROM
 
+\ TODO: check all i2c1-* call returns instead of dropping
 2 buffer: _BUF
 : _write-reg-to-sentral ( reg -- ) _BUF c! _BUF EM7180_ADDRESS 1 i2c1-write drop ;
 : _read-byte-from-sentral ( -- byte ) _BUF EM7180_ADDRESS 1 i2c1-read drop _BUF c@ ;
@@ -120,12 +121,18 @@ SENTRAL_STATUS_EEPROM_DETECTED SENTRAL_STATUS_EE_UPLOAD_DONE or SENTRAL_STATUS_I
 : _reset ( -- ) $1 EM7180_RESET_REQUEST write-byte-to-sentral-reg ;
 : _to-string ( ud|d -- c-addr length ) 0 <# #s #> ;	\ buffer for pictured strings is reused so must use immediately
 : _wait-ready ( -- )
-  _status@ dup _READY <> if begin
-    s" init-sentral: not ready, resetting: " log.warning _to-string log.warning-append
-    _reset
-    #500 delay
-    _status@ _READY <>
-  until then drop
+  _status@
+  dup s" init-sentral: status " log.debug _to-string log.debug-append
+  _READY <> if
+    begin
+      s" init-sentral: not ready, resetting: " log.warning
+      _reset
+      #1000 delay
+      _status@
+      dup s" init-sentral: status " log.debug _to-string log.debug-append
+      _READY =
+    until
+  then
 ;
 
 : _enable-pass-thru-state ( -- ) $1 EM7180_PASS_THRU_CONTROL write-byte-to-sentral-reg ;
@@ -133,7 +140,7 @@ SENTRAL_STATUS_EEPROM_DETECTED SENTRAL_STATUS_EE_UPLOAD_DONE or SENTRAL_STATUS_I
 : _in-pass-thru-state? ( -- flag ) EM7180_PASS_THRU_STATUS read-byte-from-sentral-reg _to-flag ;
 : _wait-until-in-pass-thru-state ( -- )
   _in-pass-thru-state? not if begin
-    s" _wait-pass-thru-state: not in pass thru state, looping" log.warning
+    s" _wait-until-in-pass-thru-state: not in pass thru state, looping" log.warning
     #5 delay
     _in-pass-thru-state?
   until then
@@ -143,19 +150,19 @@ SENTRAL_STATUS_EEPROM_DETECTED SENTRAL_STATUS_EE_UPLOAD_DONE or SENTRAL_STATUS_I
   _wait-until-in-pass-thru-state
 ;
 
-\  // Sentral I2C EEPROM
-\   #define M24512DFM_IDPAGE_ADDRESS              0x58
-\   uint8_t data[12];
-\   uint8_t axis;
-
-\   I2C->M24512DFMreadBytes(M24512DFM_DATA_ADDRESS, 0x80, 0x8c, 12, data);                                                                         // Page 257
-\   for (axis = 0; axis < 3; axis++)
-\   {
-\     global_conf.accZero_max[SensorNum][axis] = ((int16_t)(data[(2*axis + 1)]<<8) | data[2*axis]);
-\     global_conf.accZero_min[SensorNum][axis] = ((int16_t)(data[(2*axis + 7)]<<8) | data[(2*axis + 6)]);
-\   }
-
-
+: _disable-pass-thru-state ( -- ) 0 EM7180_PASS_THRU_CONTROL write-byte-to-sentral-reg ;
+: _wait-until-not-in-pass-thru-state ( -- )
+  _in-pass-thru-state? if begin
+    s" _wait-until-not-pass-thru-state: in pass thru state, looping" log.warning
+    #5 delay
+    _in-pass-thru-state?
+  until then
+;
+: _exit-pass-thru-state ( -- )
+  _disable-pass-thru-state
+  5 delay
+  _wait-until-not-in-pass-thru-state
+;
 
 $50 constant _M24512DFM_DATA_ADDRESS
 0 variable _ACCEL_X_MAX
@@ -166,7 +173,6 @@ $50 constant _M24512DFM_DATA_ADDRESS
 0 variable _ACCEL_Z_MIN
 12 buffer: _EEPROM_BUF
 140 buffer: _WARM_START_DATA
-1 variable _WS_VALID
 : _signed-h@ ( buf-addr -- n) h@ dup %1000000000000000 and if $ffff0000 or then ;
 $80 constant _EEPROM_CAL_MEM_ADDR_MSB
 $8c constant _EEPROM_CAL_MEM_ADDR_LSB
@@ -177,8 +183,8 @@ $98 constant _EEPROM_WS_VALID_MEM_ADDR_LSB
 : _read-accel-cal-from-eeprom ( -- )
   _EEPROM_CAL_MEM_ADDR_MSB _EEPROM_BUF c!
   _EEPROM_CAL_MEM_ADDR_LSB _EEPROM_BUF 1 + c!
-  _EEPROM_BUF _M24512DFM_DATA_ADDRESS 2 i2c1-write
-  _EEPROM_BUF _M24512DFM_DATA_ADDRESS 12 i2c1-read
+  _EEPROM_BUF _M24512DFM_DATA_ADDRESS 2 i2c1-write drop
+  _EEPROM_BUF _M24512DFM_DATA_ADDRESS 12 i2c1-read drop
 ;
 : _get-accel-cal ( -- )
   _read-accel-cal-from-eeprom
@@ -189,17 +195,164 @@ $98 constant _EEPROM_WS_VALID_MEM_ADDR_LSB
   _EEPROM_BUF 8 + _signed-h@ _ACCEL_Y_MIN !
   _EEPROM_BUF 10 + _signed-h@ _ACCEL_Z_MIN !
 ;
+
+: _min-accel-cal-valid? ( n -- flag )
+  dup -2240 >= swap -1800 <= and
+;
+: _max-accel-cal-valid? ( n -- flag )
+  dup 2240 <= swap 1800 >= and
+;
+: _cal-accel-valid? ( -- flag )
+  _ACCEL_X_MIN @ _min-accel-cal-valid?
+  _ACCEL_X_MAX @ _max-accel-cal-valid? and
+  _ACCEL_Y_MIN @ _min-accel-cal-valid? and
+  _ACCEL_Y_MAX @ _max-accel-cal-valid? and
+  _ACCEL_Z_MIN @ _min-accel-cal-valid? and
+  _ACCEL_Z_MAX @ _max-accel-cal-valid? and
+;
+
 : _get-warm-start-data ( -- )
   _EEPROM_WS_MEM_ADDR_MSB _EEPROM_BUF c!
   _EEPROM_WS_MEM_ADDR_LSB _EEPROM_BUF 1 + c!
-  _EEPROM_BUF _M24512DFM_DATA_ADDRESS 2 i2c1-write
-  _WARM_START_DATA _M24512DFM_DATA_ADDRESS 140 i2c1-read
+  _EEPROM_BUF _M24512DFM_DATA_ADDRESS 2 i2c1-write drop
+  _WARM_START_DATA _M24512DFM_DATA_ADDRESS 140 i2c1-read drop
 ;
-: _get-warm-start-valid-byte ( -- )
+$aa constant _WS_VALID_MAGIC_BYTE
+: _ws-valid? ( -- flag )
   _EEPROM_WS_VALID_MEM_ADDR_MSB _EEPROM_BUF c!
   _EEPROM_WS_VALID_MEM_ADDR_LSB _EEPROM_BUF 1 + c!
-  _EEPROM_BUF _M24512DFM_DATA_ADDRESS 2 i2c1-write
-  _WS_VALID _M24512DFM_DATA_ADDRESS 1 i2c1-read
+  _EEPROM_BUF _M24512DFM_DATA_ADDRESS 2 i2c1-write drop
+  _EEPROM_BUF _M24512DFM_DATA_ADDRESS 1 i2c1-read drop
+  _EEPROM_BUF c@ _WS_VALID_MAGIC_BYTE =
+;
+
+: print-accel-cal ( -- )
+  cr
+  _ACCEL_X_MIN @ . ." x min" cr
+  _ACCEL_X_MAX @ . ." x max" cr
+  _ACCEL_Y_MIN @ . ." x min" cr
+  _ACCEL_Y_MAX @ . ." x max" cr
+  _ACCEL_Z_MIN @ . ." x min" cr
+  _ACCEL_Z_MAX @ . ." x max" cr
+;
+
+: _set-idle-state ( -- ) 0 EM7180_HOST_CONTROL write-byte-to-sentral-reg ;
+\ enable-run state forces initialization and reads Accel Cal data into static variables
+: _enable-run-state ( -- ) $1 EM7180_HOST_CONTROL write-byte-to-sentral-reg ;
+
+: _max-min-to-scale-cal ( max min -- cal ) - 4096000000 swap u/mod swap drop 1000000 - ;
+: _max-min-to-offset-cal ( max min -- cal ) + 1000000 * 4096 u/mod swap drop ;
+: _cal-to-cal-bytes ( cal -- byte0 byte1 ) dup $ff and swap $ff00 and 8 rshift ;
+: _write-accel-scale-cal ( byte0reg byte1reg max min -- )
+  _max-min-to-scale-cal
+  _cal-to-cal-bytes ( byte0reg byte1reg byte0 byte1 )
+  rot write-byte-to-sentral-reg
+  swap write-byte-to-sentral-reg
+;
+: _write-accel-offset-cal ( byte0reg byte1reg max min -- )
+  _max-min-to-offset-cal
+  _cal-to-cal-bytes ( byte0reg byte1reg byte0 byte1 )
+  rot write-byte-to-sentral-reg
+  swap write-byte-to-sentral-reg
+;
+: _write-accel-cal-x ( -- )
+  EM7180_GP36 EM7180_GP37 _ACCEL_X_MAX @ _ACCEL_X_MIN @ _write-accel-scale-cal
+  EM7180_GP51 EM7180_GP52 _ACCEL_X_MAX @ _ACCEL_X_MIN @ _write-accel-offset-cal
+;
+: _write-accel-cal-y ( -- )
+  EM7180_GP38 EM7180_GP39 _ACCEL_Y_MAX @ _ACCEL_Y_MIN @ _write-accel-scale-cal
+  EM7180_GP53 EM7180_GP54 _ACCEL_Y_MAX @ _ACCEL_Y_MIN @ _write-accel-offset-cal
+;
+: _write-accel-cal-z ( -- )
+  EM7180_GP40 EM7180_GP50 _ACCEL_Z_MAX @ _ACCEL_Z_MIN @ _write-accel-scale-cal
+  EM7180_GP55 EM7180_GP56 _ACCEL_Z_MAX @ _ACCEL_Z_MIN @ _write-accel-offset-cal
+;
+
+: print-accel-cal-regs ( -- )
+  cr
+  EM7180_GP36 read-byte-from-sentral-reg hex. ." x scale0" cr
+  EM7180_GP37 read-byte-from-sentral-reg hex. ." x scale1" cr
+  EM7180_GP38 read-byte-from-sentral-reg hex. ." y scale0" cr
+  EM7180_GP39 read-byte-from-sentral-reg hex. ." y scale1" cr
+  EM7180_GP40 read-byte-from-sentral-reg hex. ." z scale0" cr
+  EM7180_GP50 read-byte-from-sentral-reg hex. ." z scale1" cr
+  EM7180_GP51 read-byte-from-sentral-reg hex. ." x offset0" cr
+  EM7180_GP52 read-byte-from-sentral-reg hex. ." x offset1" cr
+  EM7180_GP53 read-byte-from-sentral-reg hex. ." y offset0" cr
+  EM7180_GP54 read-byte-from-sentral-reg hex. ." y offset1" cr
+  EM7180_GP55 read-byte-from-sentral-reg hex. ." z offset0" cr
+  EM7180_GP56 read-byte-from-sentral-reg hex. ." z offset1" cr
+;
+
+: _set-alg-ctl-param-xfer ( -- ) $80 EM7180_ALGORITHM_CONTROL write-byte-to-sentral-reg ;
+: _set-alg-ctl-standby ( -- ) 0 EM7180_ALGORITHM_CONTROL write-byte-to-sentral-reg ;
+: _param-req-ack? ( param-req -- flag ) EM7180_PARAM_ACKNOWLEDGE read-byte-from-sentral-reg = ;
+: _paramnum-to-param-load-req ( paramnum -- param-req ) $80 or ;
+: _wait-param-req-ack ( param-req -- ) begin dup _param-req-ack? until drop ;
+: _load-param-bytes ( paramnum byte3 byte2 byte1 byte0 -- )
+  EM7180_LOAD_PARAM_BYTE_0 write-byte-to-sentral-reg
+  EM7180_LOAD_PARAM_BYTE_1 write-byte-to-sentral-reg
+  EM7180_LOAD_PARAM_BYTE_2 write-byte-to-sentral-reg
+  EM7180_LOAD_PARAM_BYTE_3 write-byte-to-sentral-reg
+  _paramnum-to-param-load-req
+  s" _load-param-bytes: show stack" log.debug
+  h.s
+  dup EM7180_PARAM_REQUEST write-byte-to-sentral-reg
+  s" _load-param-bytes: sent request" log.debug
+  h.s
+  _wait-param-req-ack
+  s" _load-param-bytes: done" log.debug
+;
+: _load-param-word-from-warm-start-data ( paramnum offset -- )
+  _WARM_START_DATA + ( parmnum buf-addr )
+  dup #3 + c@
+  swap dup #2 + c@
+  swap dup #1 + c@
+  swap          c@ ( paramnum byte3 byte2 byte1 byte0 )
+  s" _load-param-word-from-warm-start-data: show stack" log.debug
+  h.s
+  _load-param-bytes
+  h.s
+;
+: _end-param-xfer ( -- ) 0 EM7180_PARAM_REQUEST write-byte-to-sentral-reg ;
+: _load-warm-start ( -- )
+  _set-alg-ctl-param-xfer \ TODO: this is supposed to be done only after the first param transfer request
+  s" _load-warm-start: starting loop" log.debug
+  36 0 do
+    s" _load-warm-start: loop" log.debug
+    i #1 + i #4 * _load-param-word-from-warm-start-data
+  loop
+  s" _load-warm-start: loop finished" log.debug
+  _end-param-xfer
+  s" _load-warm-start: setting alg ctl to standby" log.debug
+  _set-alg-ctl-standby
+  s" _load-warm-start: done" log.debug
+;
+
+$3 constant _MPU9250_GYRO_LPF_41HZ
+$3 constant _MPU9250_ACC_LPF_41HZ
+: _set-sensor-lpf-bandwidth ( -- )
+  _MPU9250_ACC_LPF_41HZ EM7180_ACC_LPF_BW write-byte-to-sentral-reg
+  _MPU9250_GYRO_LPF_41HZ EM7180_GYRO_LPF_BW write-byte-to-sentral-reg
+;
+
+$64 constant _ACC_ODR_1000HZ
+$64 constant _GYRO_ODR_1000HZ
+$64 constant _MAG_ODR_100HZ
+$9 constant _Q_RATE_DIVISOR_10
+$19 constant _BARO_ODR_25HZ
+: _set-sensor-odr ( -- )
+  _ACC_ODR_1000HZ EM7180_ACCEL_RATE write-byte-to-sentral-reg
+  _GYRO_ODR_1000HZ EM7180_GYRO_RATE write-byte-to-sentral-reg
+  _MAG_ODR_100HZ EM7180_MAG_RATE write-byte-to-sentral-reg
+  _Q_RATE_DIVISOR_10 EM7180_Q_RATE_DIVISOR write-byte-to-sentral-reg
+  \ ODR + 10000000b to activate the eventStatus bit for the barometer...
+  _BARO_ODR_25HZ $80 or EM7180_BARO_RATE write-byte-to-sentral-reg
+;
+
+: _enable-int ( -- )
+  \ gyros updated (0x20), Sentral error (0x02) or Sentral reset (0x01)
+  $23 EM7180_ENABLE_EVENTS write-byte-to-sentral-reg
 ;
 
 : init-sentral ( -- )
@@ -207,6 +360,41 @@ $98 constant _EEPROM_WS_VALID_MEM_ADDR_LSB
   _wait-ready
   _enter-pass-thru-state
   _get-accel-cal
+  print-accel-cal
+  _cal-accel-valid? not if s" init-sentral: accel calibration invalid; exiting" log.warning exit then
   _get-warm-start-data
-  _get-warm-start-valid-byte
+  _ws-valid? not if s" init-sentral: warm start data invalid; exiting" log.warning exit then
+  _exit-pass-thru-state
+  _set-idle-state
+  _write-accel-cal-x
+  _write-accel-cal-y
+  _write-accel-cal-z
+  _enable-run-state
+  print-accel-cal-regs
+  _load-warm-start
+  s" init-sentral: warm start data loaded" log.debug
+  \ _set-sensor-lpf-bandwidth
+  \ _set-sensor-odr
+  \ _set-alg-ctl-standby
+  \ _enable-int
+  \ _set-alg-ctl-standby
 ;
+: init-sentral-2 ( -- )
+;
+
+: get_quat ( -- )
+  EM7180_QX
+;
+
+\  // Perform final Sentral alogorithm parameter modifications
+\  EM7180::EM7180_set_integer_param (0x49, 0x00); // Disable "Stillness" mode
+\  EM7180::EM7180_set_integer_param (0x48, 0x01); // Set Gbias_mode to 1
+\  EM7180::EM7180_set_mag_acc_FS (MAG_SCALE, ACC_SCALE); // Set magnetometer/accelerometer full-scale ranges
+\  EM7180::EM7180_set_gyro_FS (GYRO_SCALE); // Set gyroscope full-scale range
+\  EM7180::EM7180_set_float_param (0x3B, 0.0f); // Param 59 Mag Transient Protect off (0.0)
+\
+\  // Choose interrupt events: Gyros updated (0x20), Sentral error (0x02) or Sentral reset (0x01)
+\  I2C->writeByte(EM7180_ADDRESS, EM7180_EnableEvents, 0x23);
+\
+\  // Read event status register
+\  eventStatus[SensorNum] = I2C->readByte(EM7180_ADDRESS, EM7180_EventStatus);
