@@ -102,27 +102,26 @@ $10 constant SENTRAL_STATUS_NO_EEPROM
 
 \ TODO: check all i2c1-* call returns instead of dropping
 2 buffer: _BUF
-: _write-reg-to-sentral ( reg -- ) _BUF c! _BUF EM7180_ADDRESS 1 i2c1-write drop ;
-: read-bytes-from-sentral-reg-to-buf ( numbytes buf-addr reg -- )
-  _write-reg-to-sentral
-  EM7180_ADDRESS rot i2c1-read drop
+: _write-reg-to-sentral ( reg -- status ) _BUF c! _BUF EM7180_ADDRESS 1 i2c1-write ;
+: read-bytes-from-sentral-reg-to-buf ( numbytes buf-addr reg -- status )
+  _write-reg-to-sentral dup STATUS_OK <> if exit then drop
+  EM7180_ADDRESS rot i2c1-read  dup STATUS_OK <> if exit then
 ;
 
-: read-byte-from-sentral-reg ( reg -- byte )
-  1 _BUF rot read-bytes-from-sentral-reg-to-buf
-  _BUF c@
+: read-byte-from-sentral-reg ( reg -- byte status )
+  1 _BUF rot read-bytes-from-sentral-reg-to-buf dup STATUS_OK <> if 0 swap exit then
+  _BUF c@ swap
 ;
 
-: write-byte-to-sentral-reg ( byte reg -- )
+: write-byte-to-sentral-reg ( byte reg -- status )
   _BUF c!
   _BUF #1 + c!
   _BUF EM7180_ADDRESS #2 i2c1-write
-  drop
 ;
 
-: _status@ ( -- status ) EM7180_SENTRAL_STATUS read-byte-from-sentral-reg ;
+: _status@ ( -- status ) EM7180_SENTRAL_STATUS read-byte-from-sentral-reg drop ;
 SENTRAL_STATUS_EEPROM_DETECTED SENTRAL_STATUS_EE_UPLOAD_DONE or SENTRAL_STATUS_IDLE or constant _READY
-: _reset ( -- ) $1 EM7180_RESET_REQUEST write-byte-to-sentral-reg ;
+: _reset ( -- ) $1 EM7180_RESET_REQUEST write-byte-to-sentral-reg drop ;
 : _to-string ( ud|d -- c-addr length ) 0 <# #s #> ;	\ buffer for pictured strings is reused so must use immediately
 : _wait-ready ( -- )
   _status@
@@ -139,9 +138,9 @@ SENTRAL_STATUS_EEPROM_DETECTED SENTRAL_STATUS_EE_UPLOAD_DONE or SENTRAL_STATUS_I
   then
 ;
 
-: _enable-pass-thru-state ( -- ) $1 EM7180_PASS_THRU_CONTROL write-byte-to-sentral-reg ;
+: _enable-pass-thru-state ( -- ) $1 EM7180_PASS_THRU_CONTROL write-byte-to-sentral-reg drop ;
 : _to-flag ( val -- flag ) if true exit then false ;
-: _in-pass-thru-state? ( -- flag ) EM7180_PASS_THRU_STATUS read-byte-from-sentral-reg _to-flag ;
+: _in-pass-thru-state? ( -- flag ) EM7180_PASS_THRU_STATUS read-byte-from-sentral-reg drop _to-flag ;
 : _wait-until-in-pass-thru-state ( -- )
   _in-pass-thru-state? not if begin
     s" _wait-until-in-pass-thru-state: not in pass thru state, looping" log.warning
@@ -154,7 +153,7 @@ SENTRAL_STATUS_EEPROM_DETECTED SENTRAL_STATUS_EE_UPLOAD_DONE or SENTRAL_STATUS_I
   _wait-until-in-pass-thru-state
 ;
 
-: _disable-pass-thru-state ( -- ) 0 EM7180_PASS_THRU_CONTROL write-byte-to-sentral-reg ;
+: _disable-pass-thru-state ( -- ) 0 EM7180_PASS_THRU_CONTROL write-byte-to-sentral-reg drop ;
 : _wait-until-not-in-pass-thru-state ( -- )
   _in-pass-thru-state? if begin
     s" _wait-until-not-pass-thru-state: in pass thru state, looping" log.warning
@@ -240,9 +239,9 @@ $aa constant _WS_VALID_MAGIC_BYTE
   _ACCEL_Z_MAX @ . ." x max" cr
 ;
 
-: _set-idle-state ( -- ) 0 EM7180_HOST_CONTROL write-byte-to-sentral-reg ;
+: _set-idle-state ( -- ) 0 EM7180_HOST_CONTROL write-byte-to-sentral-reg drop ;
 \ enable-run state forces initialization and reads Accel Cal data into static variables
-: _enable-run-state ( -- ) $1 EM7180_HOST_CONTROL write-byte-to-sentral-reg ;
+: _enable-run-state ( -- ) $1 EM7180_HOST_CONTROL write-byte-to-sentral-reg drop ;
 
 : _max-min-to-scale-cal ( max min -- cal ) - 4096000000 swap u/mod swap drop 1000000 - ;
 : _max-min-to-offset-cal ( max min -- cal ) + 1000000 * 4096 u/mod swap drop ;
@@ -250,14 +249,14 @@ $aa constant _WS_VALID_MAGIC_BYTE
 : _write-accel-scale-cal ( byte0reg byte1reg max min -- )
   _max-min-to-scale-cal
   _cal-to-cal-bytes ( byte0reg byte1reg byte0 byte1 )
-  rot write-byte-to-sentral-reg
-  swap write-byte-to-sentral-reg
+  rot write-byte-to-sentral-reg drop
+  swap write-byte-to-sentral-reg drop
 ;
 : _write-accel-offset-cal ( byte0reg byte1reg max min -- )
   _max-min-to-offset-cal
   _cal-to-cal-bytes ( byte0reg byte1reg byte0 byte1 )
-  rot write-byte-to-sentral-reg
-  swap write-byte-to-sentral-reg
+  rot write-byte-to-sentral-reg drop
+  swap write-byte-to-sentral-reg drop
 ;
 : _write-accel-cal-x ( -- )
   EM7180_GP36 EM7180_GP37 _ACCEL_X_MAX @ _ACCEL_X_MIN @ _write-accel-scale-cal
@@ -274,34 +273,34 @@ $aa constant _WS_VALID_MAGIC_BYTE
 
 : print-accel-cal-regs ( -- )
   cr
-  EM7180_GP36 read-byte-from-sentral-reg hex. ." x scale0" cr
-  EM7180_GP37 read-byte-from-sentral-reg hex. ." x scale1" cr
-  EM7180_GP38 read-byte-from-sentral-reg hex. ." y scale0" cr
-  EM7180_GP39 read-byte-from-sentral-reg hex. ." y scale1" cr
-  EM7180_GP40 read-byte-from-sentral-reg hex. ." z scale0" cr
-  EM7180_GP50 read-byte-from-sentral-reg hex. ." z scale1" cr
-  EM7180_GP51 read-byte-from-sentral-reg hex. ." x offset0" cr
-  EM7180_GP52 read-byte-from-sentral-reg hex. ." x offset1" cr
-  EM7180_GP53 read-byte-from-sentral-reg hex. ." y offset0" cr
-  EM7180_GP54 read-byte-from-sentral-reg hex. ." y offset1" cr
-  EM7180_GP55 read-byte-from-sentral-reg hex. ." z offset0" cr
-  EM7180_GP56 read-byte-from-sentral-reg hex. ." z offset1" cr
+  EM7180_GP36 read-byte-from-sentral-reg drop hex. ." x scale0" cr
+  EM7180_GP37 read-byte-from-sentral-reg drop hex. ." x scale1" cr
+  EM7180_GP38 read-byte-from-sentral-reg drop hex. ." y scale0" cr
+  EM7180_GP39 read-byte-from-sentral-reg drop hex. ." y scale1" cr
+  EM7180_GP40 read-byte-from-sentral-reg drop hex. ." z scale0" cr
+  EM7180_GP50 read-byte-from-sentral-reg drop hex. ." z scale1" cr
+  EM7180_GP51 read-byte-from-sentral-reg drop hex. ." x offset0" cr
+  EM7180_GP52 read-byte-from-sentral-reg drop hex. ." x offset1" cr
+  EM7180_GP53 read-byte-from-sentral-reg drop hex. ." y offset0" cr
+  EM7180_GP54 read-byte-from-sentral-reg drop hex. ." y offset1" cr
+  EM7180_GP55 read-byte-from-sentral-reg drop hex. ." z offset0" cr
+  EM7180_GP56 read-byte-from-sentral-reg drop hex. ." z offset1" cr
 ;
 
-: _set-alg-ctl-param-xfer ( -- ) $80 EM7180_ALGORITHM_CONTROL write-byte-to-sentral-reg ;
-: _set-alg-ctl-standby ( -- ) 0 EM7180_ALGORITHM_CONTROL write-byte-to-sentral-reg ;
-: _param-req-ack? ( param-req -- flag ) EM7180_PARAM_ACKNOWLEDGE read-byte-from-sentral-reg = ;
+: _set-alg-ctl-param-xfer ( -- ) $80 EM7180_ALGORITHM_CONTROL write-byte-to-sentral-reg drop ;
+: _set-alg-ctl-standby ( -- ) 0 EM7180_ALGORITHM_CONTROL write-byte-to-sentral-reg drop ;
+: _param-req-ack? ( param-req -- flag ) EM7180_PARAM_ACKNOWLEDGE read-byte-from-sentral-reg drop = ;
 : _paramnum-to-param-load-req ( paramnum -- param-req ) $80 or ;
 : _wait-param-req-ack ( param-req -- ) begin dup _param-req-ack? until drop ;
 : _load-param-bytes ( paramnum byte3 byte2 byte1 byte0 -- )
-  EM7180_LOAD_PARAM_BYTE_0 write-byte-to-sentral-reg
-  EM7180_LOAD_PARAM_BYTE_1 write-byte-to-sentral-reg
-  EM7180_LOAD_PARAM_BYTE_2 write-byte-to-sentral-reg
-  EM7180_LOAD_PARAM_BYTE_3 write-byte-to-sentral-reg
+  EM7180_LOAD_PARAM_BYTE_0 write-byte-to-sentral-reg drop
+  EM7180_LOAD_PARAM_BYTE_1 write-byte-to-sentral-reg drop
+  EM7180_LOAD_PARAM_BYTE_2 write-byte-to-sentral-reg drop
+  EM7180_LOAD_PARAM_BYTE_3 write-byte-to-sentral-reg drop
   _paramnum-to-param-load-req
   s" _load-param-bytes: show stack" log.debug
   h.s
-  dup EM7180_PARAM_REQUEST write-byte-to-sentral-reg
+  dup EM7180_PARAM_REQUEST write-byte-to-sentral-reg drop
   s" _load-param-bytes: sent request" log.debug
   h.s
   _wait-param-req-ack
@@ -318,7 +317,7 @@ $aa constant _WS_VALID_MAGIC_BYTE
   _load-param-bytes
   h.s
 ;
-: _end-param-xfer ( -- ) 0 EM7180_PARAM_REQUEST write-byte-to-sentral-reg ;
+: _end-param-xfer ( -- ) 0 EM7180_PARAM_REQUEST write-byte-to-sentral-reg drop ;
 : _load-warm-start ( -- )
   _set-alg-ctl-param-xfer \ TODO: this is supposed to be done only after the first param transfer request
   s" _load-warm-start: starting loop" log.debug
@@ -336,8 +335,8 @@ $aa constant _WS_VALID_MAGIC_BYTE
 $3 constant _MPU9250_GYRO_LPF_41HZ
 $3 constant _MPU9250_ACC_LPF_41HZ
 : _set-sensor-lpf-bandwidth ( -- )
-  _MPU9250_ACC_LPF_41HZ EM7180_ACC_LPF_BW write-byte-to-sentral-reg
-  _MPU9250_GYRO_LPF_41HZ EM7180_GYRO_LPF_BW write-byte-to-sentral-reg
+  _MPU9250_ACC_LPF_41HZ EM7180_ACC_LPF_BW write-byte-to-sentral-reg drop
+  _MPU9250_GYRO_LPF_41HZ EM7180_GYRO_LPF_BW write-byte-to-sentral-reg drop
 ;
 
 $64 constant _ACC_ODR_1000HZ
@@ -346,17 +345,17 @@ $64 constant _MAG_ODR_100HZ
 $9 constant _Q_RATE_DIVISOR_10
 $19 constant _BARO_ODR_25HZ
 : _set-sensor-odr ( -- )
-  _ACC_ODR_1000HZ EM7180_ACCEL_RATE write-byte-to-sentral-reg
-  _GYRO_ODR_1000HZ EM7180_GYRO_RATE write-byte-to-sentral-reg
-  _MAG_ODR_100HZ EM7180_MAG_RATE write-byte-to-sentral-reg
-  _Q_RATE_DIVISOR_10 EM7180_Q_RATE_DIVISOR write-byte-to-sentral-reg
+  _ACC_ODR_1000HZ EM7180_ACCEL_RATE write-byte-to-sentral-reg drop
+  _GYRO_ODR_1000HZ EM7180_GYRO_RATE write-byte-to-sentral-reg drop
+  _MAG_ODR_100HZ EM7180_MAG_RATE write-byte-to-sentral-reg drop
+  _Q_RATE_DIVISOR_10 EM7180_Q_RATE_DIVISOR write-byte-to-sentral-reg drop
   \ ODR + 10000000b to activate the eventStatus bit for the barometer...
-  _BARO_ODR_25HZ $80 or EM7180_BARO_RATE write-byte-to-sentral-reg
+  _BARO_ODR_25HZ $80 or EM7180_BARO_RATE write-byte-to-sentral-reg drop
 ;
 
 : _enable-int ( -- )
   \ gyros updated (0x20), Sentral error (0x02) or Sentral reset (0x01)
-  $23 EM7180_ENABLE_EVENTS write-byte-to-sentral-reg
+  $23 EM7180_ENABLE_EVENTS write-byte-to-sentral-reg drop
 ;
 
 : init-sentral ( -- )
