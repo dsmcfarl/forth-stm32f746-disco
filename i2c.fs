@@ -1,6 +1,7 @@
 \ I2C1 driver for master send and receive, 7 bit addressing, 400KHz.
 
 #require log.fs
+#require status.fs
 
 \ Wait while the word test with address 'test results in a true, or until
 \ timeout ends.  Returns false if 'test execute returns false before timeout,
@@ -65,12 +66,6 @@ $ffff constant TIMEOUT
   I2C1_CR2 !
 ;
 : timed-out-waiting-for-i2c1-rxdr-not-empty? ( -- flag ) ['] i2c1-rxdr-empty? true-until-timeout? ;
-#0 constant STATUS_OK
-#1 constant STATUS_BUSY
-#2 constant STATUS_RXDR_EMPTY
-#3 constant STATUS_TXDR_NOT_EMPTY
-#4 constant STATUS_NO_STOP
-#5 constant STATUS_NACK
 : save-rxdr-to-addr ( addr -- ) I2C1_RXDR c@ swap c! ;
 : i2c1-read ( buf-addr slave-addr nbytes -- status )
   timed-out-waiting-for-i2c1? if

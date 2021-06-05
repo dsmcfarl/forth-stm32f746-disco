@@ -5,3 +5,4 @@
 : log.info-append ( c-addr length -- ) type ;
 : log.warning ( c-addr length -- ) cr ." WARNING: " type ;
 : log.warning-append ( c-addr length -- ) type ;
+: u-to-string ( u -- c-addr length ) 0 <# #s #> ;	\ buffer for pictured strings is reused so must use immediately
