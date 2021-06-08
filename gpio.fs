@@ -1,6 +1,4 @@
-#require common.fs
-
-\ mecrisp-stellaris automatically enables all gpio ports
+\ #require common.fs
 
 %00 constant INPUT
 %01 constant OUTPUT
@@ -95,3 +93,15 @@ AFRH_AFRH8
 : br! ( port pin -- )
   >R BSRR_BR0 swap R> + swap bfs!
 ;
+\ mecrisp-stellaris automatically enables all gpio ports, but swdcom version doesn't
+: enable-gpioa-clock ( -- ) RCC AHB1ENR_GPIOAEN bfs! ;
+: enable-gpiob-clock ( -- ) RCC AHB1ENR_GPIOBEN bfs! ;
+: enable-gpioc-clock ( -- ) RCC AHB1ENR_GPIOCEN bfs! ;
+: enable-gpiod-clock ( -- ) RCC AHB1ENR_GPIODEN bfs! ;
+: enable-gpioe-clock ( -- ) RCC AHB1ENR_GPIOEEN bfs! ;
+: enable-gpiof-clock ( -- ) RCC AHB1ENR_GPIOFEN bfs! ;
+: enable-gpiog-clock ( -- ) RCC AHB1ENR_GPIOGEN bfs! ;
+: enable-gpioh-clock ( -- ) RCC AHB1ENR_GPIOHEN bfs! ;
+: enable-gpioi-clock ( -- ) RCC AHB1ENR_GPIOIEN bfs! ;
+: enable-gpioj-clock ( -- ) RCC AHB1ENR_GPIOJEN bfs! ;
+: enable-gpiok-clock ( -- ) RCC AHB1ENR_GPIOKEN bfs! ;

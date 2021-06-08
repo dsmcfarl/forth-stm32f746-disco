@@ -1,4 +1,4 @@
-#require common.fs
+\ #require common.fs
 
 #16000000 constant HSI_CLK_HZ		\ high speed internal clock freq
 #25000000 constant HSE_CLK_HZ		\ high speed external clock freq
@@ -83,3 +83,24 @@ HSE_CLK_HZ #1000000 / constant PLLM_VAL	\ division factor for main PLLs input cl
   baud-rate-for-16x-oversampling USART1_BRR !
 ;
 
+: init-sysclk  ( -- )
+  hsi-on
+  wait-hsi-rdy
+  set-sysclk-src-to-hsi
+  hse-off
+  bypass-hse-osc
+  hse-on
+  cfg-pll
+  cfg-reg
+  cfg-flash
+  cfg-bus-pre-scalars
+  wait-pll-rdy
+  set-sysclk-src-to-pll
+  cfg-usart1
+;
+
+: init ( -- )
+  init
+  init-sysclk
+  ." sysclk initialized" cr
+;

@@ -1,6 +1,6 @@
 compiletoflash
-#require clock.fs
-#require debug.fs
+#require sysclk.fs
+#require mco.fs
 #require systick.fs
 #require graphics.fs
 compiletoram

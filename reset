@@ -1,0 +1,3 @@
+#!/bin/sh
+pkill -INT swd2
+sleep 2

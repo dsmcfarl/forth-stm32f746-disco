@@ -1,0 +1,4 @@
+#!/bin/sh
+# remove comments and spaces by Terry Porter with addition for ( ... ) type comments
+#sed 's/\\.*$//g' < $1 | sed '/^\s*$/d' | sed 's:\(^\|\s\)(\s.*\s)\($\|\s\)::g' > $1.rcas
+sed 's/\\.*$//g' | sed '/^\s*$/d' | sed 's:\(^\|\s\)(\s.*\s)\($\|\s\): :g'

@@ -46,3 +46,9 @@ SYST $C + constant SYST_CALIB		\ SysTick calibration value register. Read Only, 
   systick-interrupt-enable
 ;
 : delay ( ms -- ) s>d MS 2@ d+ begin 2dup MS 2@ d= until 2drop ;
+
+: init ( -- )
+  init
+  init-systick
+  ." systick initialized" cr
+;

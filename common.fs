@@ -1,9 +1,9 @@
-#require memmap.fs
-#require bitfields.fs
+\ #require memmap.fs
+\ #require bitfields.fs
 
 \ helpers
-: width-to-mask ( width -- mask ) #1 swap lshift #1 - 1-foldable 1-foldable ;
-: offset-width-to-mask ( offset width -- mask ) width-to-mask swap lshift 2-foldable ;
+: _width-to-mask ( width -- mask ) #1 swap lshift #1 - 1-foldable 1-foldable ;
+: _offset-width-to-mask ( offset width -- mask ) _width-to-mask swap lshift 2-foldable ;
 
 \ Bitfields manipulation: bitfields are represented by a triplet of:
 \   * register address offset from peripheral address (defined in memmap.fs)
@@ -13,14 +13,14 @@
 \ corresponding triplet on the stack. The following words perform an action
 \ using a peripheral address and a bitfield triplet from the stack.
 : bfs! ( addr addr-offset bit-offset width -- )		\ set all bitfield bits
-  offset-width-to-mask -rot + bis!
+  _offset-width-to-mask -rot + bis!
 ;
 : bfc! ( addr addr-offset bit-offset width -- )		\ clear all bitfield bits
-  offset-width-to-mask -rot + bic!
+  _offset-width-to-mask -rot + bic!
 ;
 : bf! ( u addr addr-offset bit-offset width -- )	\ store value in bitfield
   over >R		\ save a copy of bit-offset
-  offset-width-to-mask	\ get a mask ( u addr addr-offset mask, R: bit-offset )
+  _offset-width-to-mask	\ get a mask ( u addr addr-offset mask, R: bit-offset )
   -rot + rot		\ calc address and move u to top ( mask addr u, R: bit-offset )
   R> lshift		\ shift u to proper position ( mask addr u-shifted )
   rot dup not >R	\ ( addr u-shifted mask, R: mask-inverted )	
@@ -31,7 +31,7 @@
 ;
 : bf@ ( addr addr-offset bit-offset width -- u )	\ fetch value from bitfield
   over >R		\ save a copy of bit-offset
-  offset-width-to-mask
+  _offset-width-to-mask
   -rot +		\ move mask out of way and calc address ( mask addr, R: bit-offset )
   @ and R> rshift	\ fetch value and mask it then rshift by bit-offset
 ;
@@ -45,12 +45,12 @@
   base @ >R binary bf. R> base !
 ;
 : bfm ( addr-offset bit-offset width -- mask )
-  offset-width-to-mask swap drop 3-foldable
+  _offset-width-to-mask swap drop 3-foldable
 ;
 : bf<< ( u addr-offset bit-offset width -- )		\ shift value into bitfield position and mask
   rot drop		\ do not need addr-offset
   over swap		\ save a copy of bit-offset
-  offset-width-to-mask
+  _offset-width-to-mask
   -rot
   lshift and
 ;
@@ -60,3 +60,7 @@
 : h. base @ >R hex . R> base ! ;	\ print in hex
 : b. base @ >R binary . R> base ! ;	\ print in binary
 : hu. base @ >R hex u. R> base ! ;	\ print in hex, unsigned
+
+: init ( -- )				\ called automatically after reset
+  ." common initialized" cr
+;

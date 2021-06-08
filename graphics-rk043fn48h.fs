@@ -1,6 +1,6 @@
-#require gpio.fs
-#require colormap.fs
-#require colors.fs
+\ #require gpio.fs
+\ #require colormap.fs
+\ #require colors.fs
 
 \ RK043FN48H-CT672B datasheet defines back porch differently than ST. ST back
 \ porch does not include HSYNC or VSYNC. All timings in pixel clock cycles.
@@ -51,6 +51,11 @@
 
 : af14-fast! ( port pin -- ) 2dup AF -rot moder! 2dup HIGH -rot ospeedr! AF14 -rot afr! ;
 : cfg-lcd-gpio ( -- )
+  enable-gpioe-clock
+  enable-gpiog-clock
+  enable-gpioi-clock
+  enable-gpioj-clock
+  enable-gpiok-clock
   GPIOI #15 af14-fast!			\ LCD_R0
   GPIOJ #0 af14-fast!			\ LCD_R1
   GPIOJ #1 af14-fast!			\ LCD_R2

@@ -1,0 +1,6 @@
+#!/bin/sh
+printf " eraseflash \n" > upload.fs
+./upload
+sleep 1
+rm upload.fs
+./reset
