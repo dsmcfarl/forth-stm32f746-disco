@@ -39,6 +39,7 @@ $ffff constant TIMEOUT
 ;
 : enable-i2c1 ( -- ) I2C1 CR1_PE bfs! ;
 : init-i2c1 ( -- )
+  enable-gpiob-clock
   GPIOB 8 init-i2c-gpio-pin
   GPIOB 9 init-i2c-gpio-pin
   enable-i2c1-clock

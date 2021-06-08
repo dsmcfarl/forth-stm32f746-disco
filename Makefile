@@ -15,13 +15,14 @@ FLASH_SOURCES=memmap.fs \
 RAM_SOURCES=log.fs \
 	status.fs \
 	i2c.fs \
+	sentral.fs \
 	init-ram.fs
 
 RCAS=./rcas
 FLASH_UPLOAD_DELAY=15
 RAM_UPLOAD_DELAY=5
 
-upload-ram.fs: upload-flash.fs
+upload-ram.fs: $(RAM_SOURCES) upload-flash.fs
 	./reset
 	cat $(RAM_SOURCES) | $(RCAS) > upload.fs
 	./upload

@@ -2,9 +2,9 @@
 \ MPU9250 based Ultimate Sensor Fusion Solution available from:
 \ https://www.tindie.com/products/onehorse/ultimate-sensor-fusion-solution-mpu9250/
 
-#require i2c.fs
-#require log.fs
-#require status.fs
+\ #require i2c.fs
+\ #require log.fs
+\ #require status.fs
 
 $28 constant EM7180_ADDRESS
 $00 constant EM7180_QX
