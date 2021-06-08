@@ -1,4 +1,5 @@
 upload.fs
+upload-*.fs
 /bitfields.fs
 /memmap.fs
 /old/

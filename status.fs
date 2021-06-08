@@ -1,4 +1,4 @@
-#require log.fs
+\ #require log.fs
 
 #0 constant STATUS_OK
 #1 constant STATUS_BUSY
@@ -11,4 +11,3 @@
 : check-warn ( status c-addr length -- )
   rot dup STATUS_OK <> if -rot log.warning s" : " log.warning-append u-to-string log.warning-append exit then drop drop drop
 ;
-

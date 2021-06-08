@@ -1,4 +1,4 @@
-SOURCES=memmap.fs \
+FLASH_SOURCES=memmap.fs \
 	bitfields.fs \
 	common.fs \
 	sysclk.fs \
@@ -12,24 +12,31 @@ SOURCES=memmap.fs \
 	graphics.fs \
 	mco.fs
 
+RAM_SOURCES=log.fs \
+	status.fs \
+	i2c.fs \
+	init-ram.fs
+
 RCAS=./rcas
-UPLOAD_DELAY=15
+FLASH_UPLOAD_DELAY=15
+RAM_UPLOAD_DELAY=5
 
-ram:
+upload-ram.fs: upload-flash.fs
 	./reset
-	cat $(SOURCES) | $(RCAS) > upload.fs
-	printf "init\n" >> upload.fs
+	cat $(RAM_SOURCES) | $(RCAS) > upload.fs
 	./upload
-	sleep $(UPLOAD_DELAY)
+	sleep $(RAM_UPLOAD_DELAY)
+	mv upload.fs upload-ram.fs
 
-flash:
+upload-flash.fs: $(FLASH_SOURCES)
 	./eraseflash
 	printf "compiletoflash\n" > upload.fs
-	cat $(SOURCES) | $(RCAS) >> upload.fs
+	cat $(FLASH_SOURCES) | $(RCAS) >> upload.fs
 	printf "compiletoram\n" >> upload.fs
 	./upload
-	sleep $(UPLOAD_DELAY)
+	sleep $(FLASH_UPLOAD_DELAY)
 	./reset
+	mv upload.fs upload-flash.fs
 
 memmap.fs bitfields.fs: registers.txt gen-cmsis STM32F7x6.svd
 	./gen-cmsis
@@ -38,7 +45,7 @@ colormap.fs: x11-256-colors.json gen-colors
 	./gen-colors
 
 clean:
-	-rm -f bitfields.fs memmap.fs colormap.fs upload.fs
+	-rm -f bitfields.fs memmap.fs colormap.fs upload.fs upload-*.fs
 
 rom-swd:
 	st-flash erase

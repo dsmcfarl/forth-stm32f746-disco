@@ -1,7 +1,7 @@
 \ I2C1 driver for master send and receive, 7 bit addressing, 400KHz.
 
-#require log.fs
-#require status.fs
+\ #require log.fs
+\ #require status.fs
 
 \ Wait while the word test with address 'test results in a true, or until
 \ timeout ends.  Returns false if 'test execute returns false before timeout,
@@ -131,4 +131,10 @@ $ffff constant TIMEOUT
     STATUS_NACK exit
   then
   STATUS_OK
+;
+
+: init ( -- )
+  init
+  init-i2c1
+  ." i2c initialized" cr
 ;
