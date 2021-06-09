@@ -12,8 +12,7 @@ gen-cmsis a general purpose tool.
   swdcom is only necessary for some of the Makefile optimization. The code
   itself does not depend on any swdcom features.
 
-<code><pre>
-    diff --git a/swd2.c b/swd2.c
+<code><pre>diff --git a/swd2.c b/swd2.c
     index b9f435d..67580f5 100644
     --- a/swd2.c
     +++ b/swd2.c
@@ -33,8 +32,7 @@ gen-cmsis a general purpose tool.
   - --defsym color=1 assembler flag added to the  Makefile for color output
   - the following patch to mecrisp-stelaris-stm32f746.s for swdcom support
 
-    <code><pre>
-        diff --git a/mecrisp-stellaris-source/stm32f746-ra/mecrisp-stellaris-stm32f746.s b/mecrisp-stellaris-source/stm32f746-ra/mecrisp-stellaris-stm32f746.s
+    <code><pre>diff --git a/mecrisp-stellaris-source/stm32f746-ra/mecrisp-stellaris-stm32f746.s b/mecrisp-stellaris-source/stm32f746-ra/mecrisp-stellaris-stm32f746.s
         index ba9e81c..0005166 100644
         --- a/mecrisp-stellaris-source/stm32f746-ra/mecrisp-stellaris-stm32f746.s
         +++ b/mecrisp-stellaris-source/stm32f746-ra/mecrisp-stellaris-stm32f746.s
@@ -53,8 +51,7 @@ gen-cmsis a general purpose tool.
 
   - a \x07 BEL symbol added to common/datastackandmacros.s to beep at errors:
 
-    <code><pre>
-        diff --git a/mecrisp-stellaris-source/common/datastackandmacros.s b/mecrisp-stellaris-source/common/datastackandmacros.s
+    <code><pre>diff --git a/mecrisp-stellaris-source/common/datastackandmacros.s b/mecrisp-stellaris-source/common/datastackandmacros.s
         index 8259620..a1c6a8b 100644
         --- a/mecrisp-stellaris-source/common/datastackandmacros.s
         +++ b/mecrisp-stellaris-source/common/datastackandmacros.s
