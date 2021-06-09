@@ -39,6 +39,10 @@ upload-flash.fs: $(FLASH_SOURCES)
 	./reset
 	mv upload.fs upload-flash.fs
 
+ram:
+	touch init-ram.fs
+	make upload-ram.fs
+
 memmap.fs bitfields.fs: registers.txt gen-cmsis STM32F7x6.svd
 	./gen-cmsis
 
@@ -48,11 +52,12 @@ colormap.fs: x11-256-colors.json gen-colors
 clean:
 	-rm -f bitfields.fs memmap.fs colormap.fs upload.fs upload-*.fs
 
-rom-swd:
+rom-swdcom:
 	st-flash erase
-	st-flash write rom/mecrisp-stellaris-stm32f746-swd.bin 0x08000000
+	st-flash write rom/mecrisp-stellaris-stm32f746-swdcom.bin 0x08000000
+
 rom:
 	st-flash erase
 	st-flash write rom/mecrisp-stellaris-stm32f746.bin 0x08000000
 
-.PHONY: default clean flash rom rom-swd ram
+.PHONY: default clean flash rom rom-swd

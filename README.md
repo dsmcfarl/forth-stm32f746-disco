@@ -7,24 +7,103 @@ your needs. It is a non-goal to make this a general purpose library or to make
 gen-cmsis a general purpose tool.
 
 ## Prerequisites
+* swdcom from https://github.com/Crest/swdcom with the following patch that
+  fixes an issue where reset sometimes hangs the MCU.
+  swdcom is only necessary for some of the Makefile optimization. The code
+  itself does not depend on any swdcom features.
 
-* e4thcom from https://wiki.forth-ev.de/doku.php/en:projects:e4thcom. Only
-  required because I use e4thcom specific #require words to efficiently load
-  code only when it hasn't already been loaded.
-* mecrisp-stellaris from http://mecrisp.sourceforge.net/. I use the 2.5.7
-  version and the stm32f746-ra build.
+    diff --git a/swd2.c b/swd2.c
+    index b9f435d..67580f5 100644
+    --- a/swd2.c
+    +++ b/swd2.c
+    @@ -610,6 +610,7 @@ main(int argc, char *argv[])
+                            if ( stlink_reset(handle) ) {
+                                    die("Failed to reset target.");
+                            }
+    +                       usleep(1000);
+                            if ( stlink_run(handle) ) {
+                                    die("Failed to resume target.");
+                            }
+
+* mecrisp-stellaris from http://mecrisp.sourceforge.net/. I use the 2.5.8
+  version for the stm32f746-ra with the following modifications:
+  - terminal.s replaced by the version from swdcom
+  - --defsym color=1 assembler flag added to the  Makefile for color output
+  - the following patch to mecrisp-stelaris-stm32f746.s for swdcom support
+
+<code><pre>
+        diff --git a/mecrisp-stellaris-source/stm32f746-ra/mecrisp-stellaris-stm32f746.s b/mecrisp-stellaris-source/stm32f746-ra/mecrisp-stellaris-stm32f746.s
+        index ba9e81c..0005166 100644
+        --- a/mecrisp-stellaris-source/stm32f746-ra/mecrisp-stellaris-stm32f746.s
+        +++ b/mecrisp-stellaris-source/stm32f746-ra/mecrisp-stellaris-stm32f746.s
+        @@ -70,10 +70,10 @@ Reset: @ Einsprung zu Beginn
+         @ -----------------------------------------------------------------------------
+            @ Initialisierungen der Hardware, habe und brauche noch keinen Datenstack dafür
+            @ Initialisations for Terminal hardware, without Datastack.
+        -   bl uart_init
+         
+            @ Catch the pointers for Flash dictionary
+            .include "../common/catchflashpointers.s"
+        +   bl uart_init
+         
+            welcome " for STM32F746 by Matthias Koch"
+</pre></code>
+
+  - a \x07 BEL symbol added to common/datastackandmacros.s to beep at errors:
+
+<code><pre>
+        diff --git a/mecrisp-stellaris-source/common/datastackandmacros.s b/mecrisp-stellaris-source/common/datastackandmacros.s
+        index 8259620..a1c6a8b 100644
+        --- a/mecrisp-stellaris-source/common/datastackandmacros.s
+        +++ b/mecrisp-stellaris-source/common/datastackandmacros.s
+        @@ -382,7 +382,7 @@ psp .req r7
+           bl dotgaensefuesschen
+                 .byte 8f - 7f         @ Compute length of name field.
+         .ifdef color
+        -7:    .ascii "\x1B[31m\Meldung\x1B[0m\n"
+        +7:    .ascii "\x1B[31m\Meldung\x1B[0m\x07\n"
+         .else
+         7:    .ascii "\Meldung\n"
+         .endif
+        @@ -399,7 +399,7 @@ psp .req r7
+           bl dotgaensefuesschen
+                 .byte 8f - 7f         @ Compute length of name field.
+         .ifdef color
+        -7:    .ascii "\x1B[31m\Meldung\x1B[0m\n"
+        +7:    .ascii "\x1B[31m\Meldung\x1B[0m\x07\n"
+         .else
+         7:    .ascii "\Meldung\n"
+         .endif
+</pre></code>
+
 * A STM32F746 Discovery Kit board.
-* A utility and programmer to flash the mecrisp Stellaris kernel on the board
+* st-flash from https://github.com/stlink-org/stlink
 * pip3 from https://pip.pypa.io/en/stable/installing/
 
 ## Development
+Flash a prebuilt mecrisp-stellaris kernel to the target (make sure swd2 is not
+running):
+  
+  make rom-swdcom
+
+Start swdcom in another terminal:
+
+  swd2
+
 Clean working directory:
 
   make clean
 
-Build generated code: 
+Build:
 
   make
+
+This builds the generated code, creates two files: upload-ram.fs and
+upload-flash.fs, and uploads them to the target MCU. If any of the dependent
+forth source files are modified and make is ran again, it will rebuild. If you
+reset the target, anything uploaded to RAM is lost but the make build system
+won't know it needs re-uploaded, so you must run "make ram" to force it to
+rebuild/upload to RAM.
 
 ## gen-cmsis
 gen-cmsis is a python3 script inspired by Terry Porter's svd2forth. It parses
