@@ -11,20 +11,19 @@ gen-cmsis a general purpose tool.
   fixes an issue where reset sometimes hangs the MCU.
   swdcom is only necessary for some of the Makefile optimization. The code
   itself does not depend on any swdcom features.
-
-<code><pre>diff --git a/swd2.c b/swd2.c
-    index b9f435d..67580f5 100644
-    --- a/swd2.c
-    +++ b/swd2.c
-    @@ -610,6 +610,7 @@ main(int argc, char *argv[])
-                            if ( stlink_reset(handle) ) {
-                                    die("Failed to reset target.");
-                            }
-    +                       usleep(1000);
-                            if ( stlink_run(handle) ) {
-                                    die("Failed to resume target.");
-                            }
-</pre></code>
+    
+        diff --git a/swd2.c b/swd2.c
+        index b9f435d..67580f5 100644
+        --- a/swd2.c
+        +++ b/swd2.c
+        @@ -610,6 +610,7 @@ main(int argc, char *argv[])
+                                if ( stlink_reset(handle) ) {
+                                        die("Failed to reset target.");
+                                }
+        +                       usleep(1000);
+                                if ( stlink_run(handle) ) {
+                                        die("Failed to resume target.");
+                                }
 
 * mecrisp-stellaris from http://mecrisp.sourceforge.net/. I use the 2.5.8
   version for the stm32f746-ra with the following modifications:
@@ -32,7 +31,7 @@ gen-cmsis a general purpose tool.
   - --defsym color=1 assembler flag added to the  Makefile for color output
   - the following patch to mecrisp-stelaris-stm32f746.s for swdcom support
 
-    <code><pre>diff --git a/mecrisp-stellaris-source/stm32f746-ra/mecrisp-stellaris-stm32f746.s b/mecrisp-stellaris-source/stm32f746-ra/mecrisp-stellaris-stm32f746.s
+        diff --git a/mecrisp-stellaris-source/stm32f746-ra/mecrisp-stellaris-stm32f746.s b/mecrisp-stellaris-source/stm32f746-ra/mecrisp-stellaris-stm32f746.s
         index ba9e81c..0005166 100644
         --- a/mecrisp-stellaris-source/stm32f746-ra/mecrisp-stellaris-stm32f746.s
         +++ b/mecrisp-stellaris-source/stm32f746-ra/mecrisp-stellaris-stm32f746.s
@@ -47,11 +46,10 @@ gen-cmsis a general purpose tool.
         +   bl uart_init
          
             welcome " for STM32F746 by Matthias Koch"
-    </pre></code>
 
   - a \x07 BEL symbol added to common/datastackandmacros.s to beep at errors:
 
-    <code><pre>diff --git a/mecrisp-stellaris-source/common/datastackandmacros.s b/mecrisp-stellaris-source/common/datastackandmacros.s
+        diff --git a/mecrisp-stellaris-source/common/datastackandmacros.s b/mecrisp-stellaris-source/common/datastackandmacros.s
         index 8259620..a1c6a8b 100644
         --- a/mecrisp-stellaris-source/common/datastackandmacros.s
         +++ b/mecrisp-stellaris-source/common/datastackandmacros.s
@@ -73,7 +71,6 @@ gen-cmsis a general purpose tool.
          .else
          7:    .ascii "\Meldung\n"
          .endif
-    </pre></code>
 
 * A STM32F746 Discovery Kit board.
 * st-flash from https://github.com/stlink-org/stlink
@@ -136,20 +133,19 @@ installation to work.
 
 ## Example Usage
 
-<code><pre>
-  \ print current value of the RCC_PLLCFGR_PLLN bitfield:
-  RCC PLLCFGR_PLLN bf. 192  ok.
-  \ set RCC_PLLCFGR_PLLN bitfield to 216:
-   #216 RCC PLLCFGR_PLLN bf!  ok.
-  \ fetch the current value:
-  RCC PLLCFGR_PLLN bf@  ok.
-  \ set all bits:
-  RCC PLLCFGR_PLLN bfs!  ok.
-  \ clear all bits:
-  RCC PLLCFGR_PLLN bfc!  ok.
-  \ shift value into bitfield position and mask
-  #216 PLLCFGR_PLLN bf<<
-</pre></code>
+
+      \ print current value of the RCC_PLLCFGR_PLLN bitfield:
+      RCC PLLCFGR_PLLN bf. 192  ok.
+      \ set RCC_PLLCFGR_PLLN bitfield to 216:
+       #216 RCC PLLCFGR_PLLN bf!  ok.
+      \ fetch the current value:
+      RCC PLLCFGR_PLLN bf@  ok.
+      \ set all bits:
+      RCC PLLCFGR_PLLN bfs!  ok.
+      \ clear all bits:
+      RCC PLLCFGR_PLLN bfc!  ok.
+      \ shift value into bitfield position and mask
+      #216 PLLCFGR_PLLN bf<<
 
 There are other variations available. See common.fs for details.
 
