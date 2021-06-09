@@ -12,6 +12,7 @@ gen-cmsis a general purpose tool.
   swdcom is only necessary for some of the Makefile optimization. The code
   itself does not depend on any swdcom features.
 
+<code><pre>
     diff --git a/swd2.c b/swd2.c
     index b9f435d..67580f5 100644
     --- a/swd2.c
@@ -24,6 +25,7 @@ gen-cmsis a general purpose tool.
                             if ( stlink_run(handle) ) {
                                     die("Failed to resume target.");
                             }
+</pre></code>
 
 * mecrisp-stellaris from http://mecrisp.sourceforge.net/. I use the 2.5.8
   version for the stm32f746-ra with the following modifications:
@@ -31,7 +33,7 @@ gen-cmsis a general purpose tool.
   - --defsym color=1 assembler flag added to the  Makefile for color output
   - the following patch to mecrisp-stelaris-stm32f746.s for swdcom support
 
-<code><pre>
+    <code><pre>
         diff --git a/mecrisp-stellaris-source/stm32f746-ra/mecrisp-stellaris-stm32f746.s b/mecrisp-stellaris-source/stm32f746-ra/mecrisp-stellaris-stm32f746.s
         index ba9e81c..0005166 100644
         --- a/mecrisp-stellaris-source/stm32f746-ra/mecrisp-stellaris-stm32f746.s
@@ -47,11 +49,11 @@ gen-cmsis a general purpose tool.
         +   bl uart_init
          
             welcome " for STM32F746 by Matthias Koch"
-</pre></code>
+    </pre></code>
 
   - a \x07 BEL symbol added to common/datastackandmacros.s to beep at errors:
 
-<code><pre>
+    <code><pre>
         diff --git a/mecrisp-stellaris-source/common/datastackandmacros.s b/mecrisp-stellaris-source/common/datastackandmacros.s
         index 8259620..a1c6a8b 100644
         --- a/mecrisp-stellaris-source/common/datastackandmacros.s
@@ -74,7 +76,7 @@ gen-cmsis a general purpose tool.
          .else
          7:    .ascii "\Meldung\n"
          .endif
-</pre></code>
+    </pre></code>
 
 * A STM32F746 Discovery Kit board.
 * st-flash from https://github.com/stlink-org/stlink
